@@ -10,54 +10,76 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 public class Client {
-	private String hostname = null, neuid = null;
+	private String hostname, neuid;
+	// TCP port, default is 27993
 	private int port = 27993;
+	//whether use SSL encrypted connection, default is false
 	private boolean useSSL = false;
+	//the path of jssecacerts file
 	private String cert_path = System.getProperty("user.dir") + "/jssecacerts";
 
-	public static void main(String[] args) {
+public static void main(String[] args) {
 		Client client = new Client();
 		client.config(args);
 		client.run();
 	}
 
 	/**
-	 *
+	 * Configure arguments
 	 * @param args
 	 */
 	private void config(String[] args) {
 		if(args.length < 2 || args.length > 5){
 			System.err.println("Illegal Arguments.");
 			System.exit(1);
-		} else if(args.length == 2){//[hostname] [NEU ID]
-			hostname = args[0];
-			neuid = args[1];
-		} else if(args.length == 3){//-s [hostname] [NEU ID]
+		}
+		if(findArgument(args, "-s") != -1){
 			useSSL = true;
 			System.setProperty("javax.net.ssl.trustStore", cert_path);
 			port = 27994;
-			hostname = args[1];
-			neuid = args[2];
-		} else if(args.length == 4){//-p port [hostname] [NEU ID]
-			port = Integer.parseInt(args[1]);
-			hostname = args[2];
-			neuid = args[3];
-		} else if(args.length == 5){//-p port -s [hostname] [NEU ID]
-			port = Integer.parseInt(args[1]);
-			useSSL = true;
-			System.setProperty("javax.net.ssl.trustStore", cert_path);
-			hostname = args[2];
-			neuid = args[3];
 		}
+		if(findArgument(args, "-p") != -1){
+			int index = findArgument(args, "-p");
+			port = Integer.parseInt(args[++index]);
+		}
+		hostname = args[args.length - 2];
+		neuid = args[args.length - 1];
+	}
+
+	@Override
+	public String toString(){
+		StringBuilder sb = new StringBuilder();
+		sb.append("Use SSL: " + useSSL);
+		sb.append("\nPort: " + port);
+		sb.append("\nHost name: " + hostname);
+		sb.append("\nNEU ID: " + neuid);
+		return sb.toString();
 	}
 
 	/**
-	 *
+	 * Returns the index of the first occurrence of the specified option in args,
+	 * or -1 if args does not contain the option.
+	 * @param args the given argument list
+	 * @param option the specified option
+	 * @return -1 if there is no <code>option</code> in <code>args</code>.<pre></pre>
+	 *         the index of the first occurrence of the <code>option</code> in <code>args</code>.
+	 */
+	private int findArgument(String[] args, String option){
+		int index = -1;
+		for(int i = 0; i < args.length; i++)
+			if(args[i].equals(option))
+				index = i;
+		return index;
+	}
+
+	/**
+	 * Run client program
 	 */
 	private void run() {
 		PrintWriter out;
 		BufferedReader in;
 		Socket socket;
+		//Create specified socket
 		try {
 			if(useSSL){
 				SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -67,25 +89,28 @@ public class Client {
 				socket = new Socket(hostname, port);
 			}
 
+			// Send HELLO message
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out.println("cs5700spring2014 HELLO " + neuid + "\n");
 			out.flush();
 
+			// Receive STATUS message
 			String message = in.readLine();
 			while (message.contains("STATUS")) {
-				System.out.println("[DEBUG]STATUS:" + message);
+				//System.out.println("[DEBUG]STATUS:" + message);
 				int result = getResult(message);
-				System.out.println("[DEBUG]SOLUTION:" + "cs5700spring2014 " + result + "\n");
-
+				//System.out.println("[DEBUG]SOLUTION:" + "cs5700spring2014 " + result + "\n");
+				//Send SOLUTION message
 				out.println("cs5700spring2014 " + result + "\n");
 				out.flush();
+				// Receive Bye message or another STATUS message
 				message = in.readLine();
 			}
 
-			System.out.println("[DEBUG]Bye:" + message);
+			//System.out.println("[DEBUG]Bye:" + message);
 			System.out.println(getSecretFlag(message));
-
+			//Close IO and connection
 			in.close();
 			out.close();
 			socket.close();
@@ -95,16 +120,15 @@ public class Client {
 			System.exit(1);
 		} catch (IOException e) {
 			e.printStackTrace();
-			System.err.println("Couldn't get I/O for the connection to "
-					+ hostname);
+			System.err.println("Couldn't get I/O for the connection to " + hostname);
 			System.exit(1);
 		}
 	}
 
 	/**
-	 *
-	 * @param message
-	 * @return
+	 * Parse STATUS message and compute the mathematical expression in message
+	 * @param message STATUS message
+	 * @return result of the mathematical expression
 	 */
 	private static int getResult(String message) {
 		int num1 = 0, num2 = 0, res = 0;
@@ -127,9 +151,9 @@ public class Client {
 	}
 
 	/**
-	 *
-	 * @param message
-	 * @return
+	 * Parse BYE message and get secret flag in message
+	 * @param message BYE message
+	 * @return secret flag
 	 */
 	private static String getSecretFlag(String message) {
 		StringTokenizer st = new StringTokenizer(message);

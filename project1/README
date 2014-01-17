@@ -1,0 +1,16 @@
+README
+This project is made by Yaming Huang(huang.yam@husky.neu.edu) and
+
+Build
+
+You can build the java file by run build.sh
+./build.sh
+
+Run
+
+$ ./client <-p port> <-s> [hostname] [NEU ID]
+
+Approach
+
+Chanlleges
+https://blogs.oracle.com/gc/entry/unable_to_find_valid_certification
