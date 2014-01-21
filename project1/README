@@ -1,16 +1,25 @@
 README
-This project is made by Yaming Huang(huang.yam@husky.neu.edu) and
 
+This project is made by Yaming Huang(huang.yam@husky.neu.edu) and Shuyi Zhang(zhang.sh@husky.neu.edu)
+============================================================================
 Build
 
-You can build the java file by run build.sh
-./build.sh
-
+You can build the java code by run build file
+./build
+============================================================================
 Run
 
 $ ./client <-p port> <-s> [hostname] [NEU ID]
-
+============================================================================
 Approach
 
-Chanlleges
-https://blogs.oracle.com/gc/entry/unable_to_find_valid_certification
+0. Parse arguments and configure
+1. Send HELLO message to server and receive a STATUS message with a mathematical expression.
+2. Run a loop to solve expression until the client receive a BYE message.During each iteration, the client will compute the given expression and send the solution to the server and receive a new STATUS message.
+3. Parse the BYE message and get secret_flag.
+============================================================================
+Challenges
+
+The main challenges we face is:
+1. Parsing command line options. At first, we try to use some API to implement, e.g. The Apache Commons CLI library. But this will make our client complicated and difficult to deliver. Then we try to parse arguments by using native Java API.
+2. When we try to implement SSL connection, we find our java program will throw exception: unable to find valid certification path to requested target. After reading some blogs and Javadoc, we found the exception is due to lacking SSL certification. And we find a solution in this page: https://blogs.oracle.com/gc/entry/unable_to_find_valid_certification After running a program to generate a certificate, our client works.
