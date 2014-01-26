@@ -1,88 +1,91 @@
 __author__ = 'yummin'
+__author__ = 'zsyqq'
+'''
+This is the code for NEU CS5700 project2.
+'''
 
 import re
 import socket
 import string
 import sys
-import time
+
+class ClientError(Exception):
+    def __str__(self):
+        return repr(self.value)
+
+class ServerError(Exception):
+    def __str__(self):
+        return repr(self.value)
+
+class RedirectError(Exception):
+    def __str__(self):
+        return repr(self.value)
+
+class UnKnowError(Exception):
+    def __str__(self):
+        return repr(self.value)
 
 class Client():
+    '''
+    The Client class.
+    '''
     def __init__(self,usr,pwd):
-        self.host = 'cs5700.ccs.neu.edu'
-        self.urls = ['/fakebook/']
-        self.visited = []
-        self.flag = []
-        self.csrftoken = ''
-        self.sessionid = ''
-        self.socket = socket.create_connection((self.host, 80))
-        self.socket.setblocking(0)
-        self.usr = usr
-        self.pwd = pwd
-
-    def recv_timeout(self, the_socket,timeout=2):
-        #total data partwise in an array
-        total_data=[];
-        data='';
-
-        #beginning time
-        begin=time.time()
-        while 1:
-            #if you got some data, then break after timeout
-            if total_data and time.time()-begin > timeout:
-                break
-
-            #if you got no data at all, wait a little longer, twice the timeout
-            elif time.time()-begin > timeout*2:
-                break
-
-            #recv something
-            try:
-                data = the_socket.recv(8192)
-                if data:
-                    total_data.append(data)
-                    #change the beginning time for measurement
-                    begin = time.time()
-                else:
-                    #sleep for sometime to indicate a gap
-                    time.sleep(0.1)
-            except:
-                pass
-
-        #join all parts to make final string
-        return ''.join(total_data)
+        '''
+        '''
+        self.host = 'cs5700.ccs.neu.edu'#host name
+        self.urls = ['/fakebook/']#store unvisited urls
+        self.visited = []#store visited urls
+        self.flag = []#store secret flags
+        self.csrftoken = ''#cookie's csrftoken
+        self.sessionid = ''#cookie's sessionid
+        self.usr = usr#user name
+        self.pwd = pwd#password
+        #Connect to remote server
+        self.sock = socket.create_connection((self.host, 80))
 
     def handleRequest(self, request):
+        '''
+        Send request to the server and receive response. Return the response
+        '''
         try :
-            #Set the whole string
-            self.socket.sendall(request)
+            self.sock.sendall(request)
         except socket.error:
             #Send failed
             print 'Send failed'
             sys.exit()
 
-        reply = self.recv_timeout(self.socket, 0.25)
+        reply = self.sock.recv(4096)
         return reply
 
     def login(self):
+        '''
+        Login to the fakebook and get cookie.
+        '''
+        #initial request to access fakebook
         request="GET /accounts/login/?next=/fakebook/ HTTP/1.1\r\nHost: " + self.host + "\r\n\r\n"
 
         reply = self.handleRequest(request)
         #print ('[DEBUG]Initial Request\'s reply\n' + reply)
 
+        #Use regular expression to get the cookie's value
         csrf_pattern = re.compile(r'csrftoken=([a-z0-9]+)\;')
         session_pattern = re.compile(r'sessionid=([a-z0-9]+)\;')
+        #get cookie
         try:
             self.csrftoken = csrf_pattern.findall(reply)[0]
             self.sessionid = session_pattern.findall(reply)[0]
         except IndexError:
-            print(reply)
+            #server's reponse is abnormal, cannot get the cookie value
+            #print('[DEBUG]Cannot parse:\n' + reply)
+            sys.exit()
         #print('[DEBUG]csrf:' + self.csrftoken + '\tsession:' + self.sessionid)
 
+        #Post request to server, send username and password to login fakebook
         postdata = 'csrfmiddlewaretoken='+ self.csrftoken + '&username=' + self.usr \
-                   +'&password=' + self.pwd + '&next=%2Ffakebook%2F'
-        request = "POST /accounts/login/ HTTP/1.1\r\nHost: " + self.host + "\r\nContent-Length: "+ str(len(postdata)) +\
-                  "\r\nContent-Type: application/x-www-form-urlencoded\r\nCookie: csrftoken=" + self.csrftoken\
-                  + "; sessionid=" + self.sessionid + "\r\n\r\n" + postdata
+                   +'&password=' + self.pwd + '&next='
+        request = "POST /accounts/login/ HTTP/1.1\r\nHost: " + self.host + "\r\nConnection: keep-alive\r\nContent-Length: "\
+        + str(len(postdata)) +"\r\nContent-Type: application/x-www-form-urlencoded\r\nCookie: csrftoken="\
+        + self.csrftoken + "; sessionid=" + self.sessionid + "\r\n\r\n" + postdata
         #print('[DEBUG]Post Request:\n' + request)
 
         reply = self.handleRequest(request)
@@ -91,69 +94,109 @@ class Client():
         try:
             self.sessionid = session_pattern.findall(reply)[0]
         except IndexError:
-            print(reply)
+            #print('[DEBUG]Cannot parse:\n' + reply)
+            sys.exit()
         #print('[DEBUG]csrf:' + self.csrftoken + '\tsession:' + self.sessionid)
 
 
     def openUrl(self, url):
+        '''
+        Open the given url and return the reponse from the server
+        '''
+        def getStatus(page):
+            '''
+            Parse the HTTP response header and get HTTP status code
+            '''
+            index = string.find(page,' ') + 1
+            status = page[index : index + 3]
+            # if status == '' or status == '500' or status == '301':
+            #     print('[DEBUG]Abnormal Status Page:' + status + '\n' + page)
+            return status
         request="GET " + url + " HTTP/1.1\r\n" \
-                "Host: " + self.host + "\r\n" \
+                "Host: " + self.host + "\r\nConnection: keep-alive\r\n" \
                 "Cookie: csrftoken=" + self.csrftoken + "; sessionid=" + self.sessionid + "\r\n\r\n"
-        reply = self.handleRequest(request)
-        self.visited.append(url)
-        return reply
+        page = self.handleRequest(request)
+        self.visited.append(url)#this url is visited
+        status = getStatus(page)
+        if status == '403' or status == '404':
+            raise ClientError('403 or 404 Error')
+        elif status == '301':#redirect to a new url
+             raise RedirectError('301 Error')   
+        elif status == '500':#Internal Server Error
+            raise ServerError('500 Error')
+        elif status =='':
+            raise UnKnowError('Unkonwn Error')
+        return page
 
     def findUrl(self, page):
-        pattern = re.compile(r'<a href=\"(/fakebook/[a-z0-9//]+)\">')
+        '''
+        Use regular expression to find urls in html page
+        '''
+        pattern = re.compile(r'<a href=\"(/fakebook/[a-z0-9/]+)\">')
         links = pattern.findall(page)
-        for l in links:
-            if l not in self.urls and l not in self.visited:
-                self.urls.append(l)
+        #Find a new url(have not been visited or found), then add it to urls
+        self.urls.extend(filter(lambda l: l not in self.urls and l not in self.visited, links))
 
     def findSecretFlag(self, page):
+        '''
+        Use regular expression to find secret flag in html page
+        '''
         pattern = re.compile(r'<h2 class=\'secret_flag\' style=\"color:red\">FLAG: (\w+)</h2>')
         flag = pattern.findall(page)
         #print('Page\n' + page)
         if flag:
             self.flag.extend(flag)
 
-    def getStatus(self, page):
-        index = string.find(page,' ') + 1
-        status = page[index : index + 3]
-        if status == 0 or status == 500 or status == 301:
-            print('[DEBUG]Abnormal Status Page:\n' + page)
-        return status
-
     def getNewUrl(self, page):
-        pass
+        '''
+        Parse the HTTP response header and get new url
+        '''
+        pattern = re.compile(r'Location=http://cs5700\.ccs\.neu\.edu(/fakebook/[a-z0-9/]+)')
+        new_url = pattern.findall(page)[0]
+        return new_url
 
     def run(self):
-        while self.urls and len(self.flag) < 5:
+        '''
+        Use bridth first search to crawl fakebook
+        '''
+        while self.urls and len(self.flag) < 5:#if there are unvisited urls or less than 5 flags, countinue the loop
             link = self.urls.pop(0)
-            print('[DEBUG]Open link:' + link)
-            page = self.openUrl(link)
-            status = self.getStatus(page)
-            if status == '200':
+            #print('[DEBUG]Open link:' + link)
+            try:
+                page = self.openUrl(link)
+                #print('[DEBUG]Page:\n' + page)
                 self.findUrl(page)
                 self.findSecretFlag(page)
-            elif status == '403' or status == '404':
-                self.visited.append(link)
-            elif status == '301':
-                self.urls.append(self.getNewUrl(page))
-            elif status == '500':
-                #self.login()
+            except ClientError:
+                self.visited.append(link)#abandon the URL
+            except RedirectError:
+                self.urls.insert(0, self.getNewUrl(page))
+            except ServerError:
+                self.sock = socket.create_connection((self.host, 80))
                 self.visited.pop()
                 self.urls.insert(0, link)
-                #self.urls.insert(0, '/fakebook/')
-                print('[DEBUG]Page:\n' + page)
+            except UnKnowError:
+                self.sock = socket.create_connection((self.host, 80))
+                self.visited.pop()
+                self.urls.insert(0, link)
 
-        print('secret_flag:')
-        print(self.flag)
+
+        # print('[DEBUG]Visited:' + str(len(self.visited)))
+        # print(self.visited)
+        # print('[DEBUG]URLS:' + str(len(self.urls)))
+        # print(self.urls)
+        # print('[DEBUG]secret_flag:')
+        for flag in self.flag:
+            print flag
+        self.sock.close()
 
 
 def main():
-    c = Client('001943970', 'OVM0EEPM')
+    #c = Client('001943970', 'OVM0EEPM')
+    #c = Client('001944902', 'AF50YTLA')
+    c = Client(sys.argv[1], sys.argv[2])
     c.login()
     c.run()
 
-main()
+if __name__ == '__main__':
+    main()
