@@ -8,6 +8,7 @@ import java.util.StringTokenizer;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLException;
 
 public class Client {
 	private String hostname, neuid;
@@ -18,7 +19,7 @@ public class Client {
 	//the path of jssecacerts file
 	private String cert_path = System.getProperty("user.dir") + "/jssecacerts";
 
-public static void main(String[] args) {
+    public static void main(String[] args) {
 		Client client = new Client();
 		client.config(args);
 		client.run();
@@ -46,6 +47,9 @@ public static void main(String[] args) {
 		neuid = args[args.length - 1];
 	}
 
+    /**
+     * Print configuration information for debugging
+     */
 	@Override
 	public String toString(){
 		StringBuilder sb = new StringBuilder();
@@ -118,8 +122,10 @@ public static void main(String[] args) {
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host " + hostname);
 			System.exit(1);
+		} catch (SSLException e) {
+			System.err.println("SSL connection has problem");
+			System.exit(1);
 		} catch (IOException e) {
-			e.printStackTrace();
 			System.err.println("Couldn't get I/O for the connection to " + hostname);
 			System.exit(1);
 		}

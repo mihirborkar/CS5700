@@ -1,0 +1,17 @@
+README
+
+This project is made by Yaming Huang(huang.yam@husky.neu.edu) and Shuyi Zhang(zhang.sh@husky.neu.edu)
+============================================================================
+Build
+
+Python file do not have to build.
+============================================================================
+Run
+
+$ ./webcrawler [username] [password]
+============================================================================
+Approach
+
+0. Parse arguments and configure
+============================================================================
+Challenges
