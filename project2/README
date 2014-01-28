@@ -1,6 +1,7 @@
 README
 
-This project is made by Yaming Huang(huang.yam@husky.neu.edu) and Shuyi Zhang(zhang.sh@husky.neu.edu)
+This project is made by Yaming Huang(huang.yam@husky.neu.edu) and Shuyi Zhang
+(zhang.sh@husky.neu.edu)
 ============================================================================
 Build
 
@@ -12,6 +13,35 @@ $ ./webcrawler [username] [password]
 ============================================================================
 Approach
 
-0. Parse arguments and configure
+0. Parse arguments to get username and password
+1. Send HTTP GET request to fakebook and get cookies
+2. Send HTTP POST request with username and password to fakebook, then the
+   client will login to fakebook
+3. Use BFS to crawle fakebook from homepage:
+   3.1 Get first url in a queue called urls, which contains unvisited urls.
+   3.2 Send HTTP GET request to open the url. After openning a url, put this
+       url in a list called visited.
+   3.3 Use regular expression to find urls link in every html page. If a url
+       is in visited list or in urls, the client will abandon this url.
+   3.4 Use regular expression to find secret flag. If find a secret flag,
+       append it to a list
+   3.5 When urls is empty or the client has already find 5 flags, terminate
+       the loop
+4. Handle exception: After send HTTP GET request, the client will parse the
+   response message and get HTTP status code
+   4.1 if the status code is 200, everything is fine, continue BFS
+   4.2 if the status code is 301, parse the response message and get redirect
+       url and insert the new url to urls
+   4.3 if the status is 403 or 404, abandon this url by just putting it into
+       visited list
+   4.4 if the status is 500, the client will re-try to send the request till
+       open it successfully. So the client will reconet to server. After that,
+       remove this url from visited list, and insert it to the first position
+       of urls. Then contiune BFS
 ============================================================================
 Challenges
+
+The most challenging job is understanding how HTTP protocol works. Thanks to
+Google chrome, we can use it to analyze the content of HTTP requests the
+browser send to server and how browser send HTTP request and receive HTTP
+response step by step.

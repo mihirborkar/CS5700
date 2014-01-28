@@ -51,8 +51,7 @@ class Client():
             self.sock.sendall(request)
         except socket.error:
             #Send failed
-            print 'Send failed'
-            sys.exit()
+            sys.exit('Send failed')
 
         reply = self.sock.recv(4096)
         return reply
@@ -76,8 +75,8 @@ class Client():
             self.sessionid = session_pattern.findall(reply)[0]
         except IndexError:
             #server's reponse is abnormal, cannot get the cookie value
-            #print('[DEBUG]Cannot parse:\n' + reply)
-            sys.exit()
+            #print('[DEBUG]Cannot parse1:\n' + reply)
+            sys.exit('Cannot get cookies due to receive incomplete message.')
         #print('[DEBUG]csrf:' + self.csrftoken + '\tsession:' + self.sessionid)
 
         #Post request to server, send username and password to login fakebook
@@ -94,8 +93,8 @@ class Client():
         try:
             self.sessionid = session_pattern.findall(reply)[0]
         except IndexError:
-            #print('[DEBUG]Cannot parse:\n' + reply)
-            sys.exit()
+            #print('[DEBUG]Cannot parse2:\n' + reply)
+            sys.exit('Cannot get cookies due to receive incomplete message.')
         #print('[DEBUG]csrf:' + self.csrftoken + '\tsession:' + self.sessionid)
 
 
@@ -121,7 +120,7 @@ class Client():
         if status == '403' or status == '404':
             raise ClientError('403 or 404 Error')
         elif status == '301':#redirect to a new url
-             raise RedirectError('301 Error')   
+             raise RedirectError('301 Error')
         elif status == '500':#Internal Server Error
             raise ServerError('500 Error')
         elif status =='':
@@ -180,7 +179,6 @@ class Client():
                 self.visited.pop()
                 self.urls.insert(0, link)
 
-
         # print('[DEBUG]Visited:' + str(len(self.visited)))
         # print(self.visited)
         # print('[DEBUG]URLS:' + str(len(self.urls)))
@@ -189,7 +187,6 @@ class Client():
         for flag in self.flag:
             print flag
         self.sock.close()
-
 
 def main():
     #c = Client('001943970', 'OVM0EEPM')
