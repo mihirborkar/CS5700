@@ -1,9 +1,14 @@
-#!/bin/bash
-FAIL_FILE="./*.class"
+JC = javac
+.SUFFIXES: .java .class
+.java.class:
+	$(JC) $*.java
 
-if [ -f "$FAIL_FILE" ]
-  then
-    rm "$FAIL_FILE"
-fi
+CLASSES = \
+	Client.java
 
-javac Client.java
+default: classes
+
+classes: $(CLASSES:.java=.class)
+
+clean:
+	$(RM) *.class

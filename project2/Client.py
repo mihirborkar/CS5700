@@ -31,6 +31,7 @@ class Client():
     '''
     def __init__(self,usr,pwd):
         '''
+        Initial the class
         '''
         self.host = 'cs5700.ccs.neu.edu'#host name
         self.urls = ['/fakebook/']#store unvisited urls
@@ -76,7 +77,7 @@ class Client():
         except IndexError:
             #server's reponse is abnormal, cannot get the cookie value
             #print('[DEBUG]Cannot parse1:\n' + reply)
-            sys.exit('Cannot get cookies due to receive incomplete message.')
+            sys.exit('Cannot parse HTML due to receive incomplete message.')
         #print('[DEBUG]csrf:' + self.csrftoken + '\tsession:' + self.sessionid)
 
         #Post request to server, send username and password to login fakebook
@@ -89,12 +90,11 @@ class Client():
 
         reply = self.handleRequest(request)
         #print ('[DEBUG]POST Request\'s reply\n' + reply)
-
         try:
             self.sessionid = session_pattern.findall(reply)[0]
         except IndexError:
             #print('[DEBUG]Cannot parse2:\n' + reply)
-            sys.exit('Cannot get cookies due to receive incomplete message.')
+            sys.exit('Cannot parse HTML due to receive incomplete message.')
         #print('[DEBUG]csrf:' + self.csrftoken + '\tsession:' + self.sessionid)
 
 
@@ -111,6 +111,7 @@ class Client():
             # if status == '' or status == '500' or status == '301':
             #     print('[DEBUG]Abnormal Status Page:' + status + '\n' + page)
             return status
+
         request="GET " + url + " HTTP/1.1\r\n" \
                 "Host: " + self.host + "\r\nConnection: keep-alive\r\n" \
                 "Cookie: csrftoken=" + self.csrftoken + "; sessionid=" + self.sessionid + "\r\n\r\n"
@@ -191,6 +192,8 @@ class Client():
 def main():
     #c = Client('001943970', 'OVM0EEPM')
     #c = Client('001944902', 'AF50YTLA')
+    if(len(sys.argv) != 3):
+        sys.exit('Illeagal Arguments.')
     c = Client(sys.argv[1], sys.argv[2])
     c.login()
     c.run()
