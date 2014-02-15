@@ -8,7 +8,7 @@ set var2 [lindex $argv 1]
 set rate [lindex $argv 2]
 
 # Open the trace file
-set tf [open ${var1}${var2}_output-${rate}.tr w]
+set tf [open ${var1}_${var2}_output-${rate}.tr w]
 $ns trace-all $tf
 
 
@@ -63,17 +63,19 @@ if {$var1 eq "Reno"} {
 	set tcp1 [new Agent/TCP/Vegas]
 }
 
+$tcp1 set class_ 1
 $ns attach-agent $n1 $tcp1
 set sink1 [new Agent/TCPSink]
 $ns attach-agent $n4 $sink1
 $ns connect $tcp1 $sink1
 
-if {$var1 eq "Reno"} {
+if {$var2 eq "Reno"} {
 	set tcp2 [new Agent/TCP/Reno]
-} elseif {$var1 eq "Vegas"} {
+} elseif {$var2 eq "Vegas"} {
 	set tcp2 [new Agent/TCP/Vegas]
 }
 
+$tcp2 set class_ 2
 $ns attach-agent $n5 $tcp2
 set sink2 [new Agent/TCPSink]
 $ns attach-agent $n6 $sink2
@@ -99,4 +101,3 @@ $ns at 10.0 "finish"
 
 #Run the simulation
 $ns run
-

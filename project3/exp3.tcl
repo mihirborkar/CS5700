@@ -1,8 +1,13 @@
 # Create a Simulator object
 set ns [new Simulator]
 
+# TCP var
+set tcp_var [lindex $argv 0]
+# Queue var
+set q_var [lindex $argv 1]
+
 # Open the trace file
-set tf [open ${variant}_output-${rate}.tr w]
+set tf [open ${tcp_var}-${q_var}_output.tr w]
 $ns trace-all $tf
 
 
@@ -11,13 +16,6 @@ proc finish {} {
 	global ns tf tcp rate variant
 	$ns flush-trace
 	close $tf
-	exec awk {
-		{
-			if ($5 == "tcp" || $5 == "ack"){
-				print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12;
-			}
-		}
-	} ${variant}_output-${rate}.tr > ${variant}_out-${rate}.tr
 	exit 0
 }
 
@@ -32,10 +30,14 @@ set n6 [$ns node]
 #create links between the nodes
 $ns duplex-link $n1 $n2 10Mb 10ms DropTail
 $ns duplex-link $n5 $n2 10Mb 10ms DropTail
-$ns duplex-link $n2 $n3 10Mb 10ms DropTail
-#$ns duplex-link $n2 $n3 10Mb 10ms RED
 $ns duplex-link $n4 $n3 10Mb 10ms DropTail
 $ns duplex-link $n6 $n3 10Mb 10ms DropTail
+if {$q_var eq "DropTail"} {
+	$ns duplex-link $n2 $n3 10Mb 10ms DropTail
+} elseif {$q_var eq "RED"} {
+	$ns duplex-link $n2 $n3 10Mb 10ms RED
+}
+
 #set queue size
 $ns queue-limit $n1 $n2 10
 $ns queue-limit $n2 $n1 10
@@ -54,8 +56,11 @@ $cbr set type_ CBR
 $cbr set rate_ 3mb
 
 #Setup a TCP conncection
-set tcp [new Agent/TCP/Reno]
-#set tcp [new Agent/TCP/Sack1]
+if {$tcp_var eq "Reno"} {
+	set tcp [new Agent/TCP/Reno]
+} elseif {$tcp_var eq "SACK"} {
+	set tcp [new Agent/TCP/Sack1]
+}
 $ns attach-agent $n1 $tcp
 set sink [new Agent/TCPSink]
 $ns attach-agent $n4 $sink
