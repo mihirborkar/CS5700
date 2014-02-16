@@ -1,5 +1,5 @@
 set term png
-set output "exp1_doprate.png"
+set output "exp1_droprate.png"
 set title "Experienmnet 1 Drop Rate"
 set xlabel "CBR[Mbps]"
 set ylabel "Drop Rate"
