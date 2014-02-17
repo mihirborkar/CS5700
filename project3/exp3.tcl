@@ -13,7 +13,7 @@ $ns trace-all $tf
 
 # Define a 'finish' procedure
 proc finish {} {
-	global ns tf tcp rate variant
+	global ns tf
 	$ns flush-trace
 	close $tf
 	exit 0
@@ -28,19 +28,26 @@ set n5 [$ns node]
 set n6 [$ns node]
 
 #create links between the nodes
-$ns duplex-link $n1 $n2 10Mb 10ms DropTail
-$ns duplex-link $n5 $n2 10Mb 10ms DropTail
-$ns duplex-link $n4 $n3 10Mb 10ms DropTail
-$ns duplex-link $n6 $n3 10Mb 10ms DropTail
 if {$q_var eq "DropTail"} {
+	$ns duplex-link $n1 $n2 10Mb 10ms DropTail
 	$ns duplex-link $n2 $n3 10Mb 10ms DropTail
+	$ns duplex-link $n5 $n2 10Mb 10ms DropTail
+	$ns duplex-link $n4 $n3 10Mb 10ms DropTail
+	$ns duplex-link $n6 $n3 10Mb 10ms DropTail
 } elseif {$q_var eq "RED"} {
+	$ns duplex-link $n1 $n2 10Mb 10ms RED
 	$ns duplex-link $n2 $n3 10Mb 10ms RED
+	$ns duplex-link $n5 $n2 10Mb 10ms RED
+	$ns duplex-link $n4 $n3 10Mb 10ms RED
+	$ns duplex-link $n6 $n3 10Mb 10ms RED
 }
 
 #set queue size
-$ns queue-limit $n1 $n2 10
-$ns queue-limit $n2 $n1 10
+$ns queue-limit	$n1 $n2 10
+$ns queue-limit	$n5 $n2 10
+$ns queue-limit	$n2 $n3 10
+$ns queue-limit	$n4 $n3 10
+$ns queue-limit	$n6 $n3 10
 
 #Setup a UDP connection
 set udp [new Agent/UDP]
@@ -53,16 +60,18 @@ $ns connect $udp $null
 set cbr [new Application/Traffic/CBR]
 $cbr attach-agent $udp
 $cbr set type_ CBR
-$cbr set rate_ 3mb
+$cbr set rate_ 7mb
 
 #Setup a TCP conncection
 if {$tcp_var eq "Reno"} {
 	set tcp [new Agent/TCP/Reno]
+	set sink [new Agent/TCPSink]
 } elseif {$tcp_var eq "SACK"} {
 	set tcp [new Agent/TCP/Sack1]
+	set sink [new Agent/TCPSink/Sack1]
 }
+$tcp set class_ 1
 $ns attach-agent $n1 $tcp
-set sink [new Agent/TCPSink]
 $ns attach-agent $n4 $sink
 $ns connect $tcp $sink
 

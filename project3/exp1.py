@@ -38,11 +38,9 @@ def getThroughput(var, rate):
 			if record.event == "r":
 				recvdSize += record.pkt_size * 8
 				end_time = record.time
-	if recvdSize == 0:
-		return 0
-	else:
-		#print('DEBUG:' + str(recvdSize) + ' ' + str(end_time) + ' ' + str(start_time))
-		return recvdSize / (end_time - start_time) / (1024 * 1024)
+	
+	#print('DEBUG:' + str(recvdSize) + ' ' + str(end_time) + ' ' + str(start_time))
+	return recvdSize / (end_time - start_time) / (1024 * 1024)
 
 def getDropRate(var, rate):
 	filename = var + "_output-" + str(rate) + ".tr"
@@ -54,44 +52,64 @@ def getDropRate(var, rate):
 	for line in lines:
 		record = Record(line)
 		if record.flow_id == "1":
-			if record.event == "+" and record.from_node == "0":
+			if record.event == "+":
 				sendNum += 1
 			if record.event == "r":
 				recvdNum += 1
 	if sendNum == 0:
-		return 0.0
+		return 0
 	else:
-		return float((sendNum - recvdNum) / sendNum)
+		return float(sendNum - recvdNum) / float(sendNum)
 
-# def getLatency(var, rate):
-# 	filename = var + "_output-" + str(rate) + ".tr"
-# 	f = open(filename)
-# 	lines = f.readlines()
-# 	f.close()
-# 	highest_packet_id = 0;
-# 	for line in lines:
-# 		record = Record(line)
-# 		if record.flow_id == "1":
-# 			if record.pkt_id > highest_packet_id:
-# 				highest_packet_id = record.pkt_id
-# 			if record.event == "+" and record.from_node == 0:
-# 				send
+def getLatency(var, rate):
+	filename = var + "_output-" + str(rate) + ".tr"
+	f = open(filename)
+	lines = f.readlines()
+	f.close()
+	start_time = {}
+	end_time = {}
+	total_duration = 0.0
+	total_packet = 0
+	for line in lines:
+		record = Record(line)
+		if record.flow_id == "1":
+			if record.event == "+" and record.from_node == "0":
+				start_time.update({record.seq_num : record.time})
+			if record.event == "r" and record.to_node == "0":
+				end_time.update({record.seq_num : record.time})
+	packets = {x for x in start_time.viewkeys() if x in end_time.viewkeys()}
+	for i in packets:
+		start = start_time[i]
+		end = end_time[i]
+		duration = end - start
+		if(duration > 0):
+			total_duration += duration
+			total_packet += 1
+	if total_packet == 0:
+		return 0
+	return total_duration / total_packet *1000
 
 # Generate trace file
 for var in TCP_Variant:
 	for rate in range(1, 11):
 		os.system(ns_command + "exp1.tcl " + var + " " + str(rate))
 
-# Throughput
 f1 = open('exp1_throughput.dat', 'w')
+f2 = open('exp1_droprate.dat', 'w')
+f3 = open('exp1_delay.dat', 'w')
 for rate in range(1, 11):
-	value = ''
+	str_throughput = ''
+	str_droprate = ''
+	str_latency = ''
 	for var in TCP_Variant:
-		value = value + str(getThroughput(var, rate)) + '\t'
-	f1.write(str(rate) + "\t" + value + '\n')
+		str_throughput = str_throughput + '\t' + str(getThroughput(var, rate))
+		str_droprate = str_droprate + '\t' + str(getDropRate(var, rate))
+		str_latency = str_latency + '\t' + str(getLatency(var, rate))
+	f1.write(str(rate) + str_throughput + '\n')
+	f2.write(str(rate) + str_droprate + '\n')
+	f3.write(str(rate) + str_latency + '\n')
 f1.close()
+f2.close()
+f3.close()
 
-# Drop rate
-
-# Latency
 os.system("rm *.tr")
