@@ -1,7 +1,6 @@
 import os
 
 TCP_Variant=['Tahoe','Reno', 'NewReno', 'Vegas']
-#TCP_Variant=['Tahoe']
 
 ns_command = "/course/cs4700f12/ns-allinone-2.35/bin/ns "
 
@@ -20,14 +19,13 @@ class Record:
 		self.seq_num = contents[10]
 		self.pkt_id = contents[11]
 
-
 def getThroughput(var, rate):
 	filename = var + "_output-" + str(rate) + ".tr"
 	f = open(filename)
 	lines = f.readlines()
 	f.close()
-	start_time = 10
-	end_time = 0
+	start_time = 10.0
+	end_time = 0.0
 	recvdSize = 0
 	for line in lines:
 		record = Record(line)
@@ -38,7 +36,7 @@ def getThroughput(var, rate):
 			if record.event == "r":
 				recvdSize += record.pkt_size * 8
 				end_time = record.time
-	
+
 	#print('DEBUG:' + str(recvdSize) + ' ' + str(end_time) + ' ' + str(start_time))
 	return recvdSize / (end_time - start_time) / (1024 * 1024)
 
@@ -47,8 +45,7 @@ def getDropRate(var, rate):
 	f = open(filename)
 	lines = f.readlines()
 	f.close()
-	sendNum = 0
-	recvdNum = 0
+	sendNum = recvdNum = 0
 	for line in lines:
 		record = Record(line)
 		if record.flow_id == "1":

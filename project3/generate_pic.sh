@@ -24,4 +24,4 @@ gnuplot pic_builder/exp3_Sack_DropTail_throughput.gnu
 gnuplot pic_builder/exp3_Reno_DropTail_throughput.gnu
 gnuplot pic_builder/exp3_Reno_RED_throughput.gnu
 
-#rm *.dat
+rm *.dat

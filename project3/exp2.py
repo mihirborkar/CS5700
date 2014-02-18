@@ -24,42 +24,42 @@ def getThroughput(var, rate):
 	f = open(filename)
 	lines = f.readlines()
 	f.close()
-	start_time1 = 10
-	end_time1 = 0
-	recvdSize1 = 0
-	start_time2 = 10
-	end_time2 = 0
-	recvdSize2 = 0
+	# Set counters
+	start_time1 = start_time2 = 10.0
+	end_time1 = end_time2 = 0.0
+	recvdSize1 = recvdSize2 = 0
+
 	for line in lines:
 		record = Record(line)
-		if record.flow_id == "1":
+		if record.flow_id == "1":#TCP stream from 1 to 4
 			if record.event == "+" and record.from_node == "0":
 				if(record.time < start_time1):
 					start_time1 = record.time
-			if record.event == "r" and record.to_node == "3":
+			if record.event == "r":
 				recvdSize1 += record.pkt_size * 8
 				end_time1 = record.time
-		if record.flow_id == "2":
+		if record.flow_id == "2":#TCP stream from 5 to 6
 			if record.event == "+" and record.from_node == "4":
 				if(record.time < start_time2):
 					start_time2 = record.time
-			if record.event == "r" and record.to_node == "5":
+			if record.event == "r":
 				recvdSize2 += record.pkt_size * 8
 				end_time2 = record.time
-	
+
 	#print('DEBUG:' + str(recvdSize) + ' ' + str(end_time) + ' ' + str(start_time))
-	return str(recvdSize1 / (end_time1 - start_time1) / (1024 * 1024)) + '\t' +\
-	str(recvdSize2 / (end_time2 - start_time2) / (1024 * 1024))
+	th1 = recvdSize1 / (end_time1 - start_time1) / (1024 * 1024)
+	th2 = recvdSize2 / (end_time2 - start_time2) / (1024 * 1024)
+	return str(th1) + '\t' + str(th2)
 
 def getDropRate(var, rate):
 	filename = var + "_output-" + str(rate) + ".tr"
 	f = open(filename)
 	lines = f.readlines()
 	f.close()
-	sendNum1 = 0
-	recvdNum1 = 0
-	sendNum2 = 0
-	recvdNum2 = 0
+
+	sendNum1 = recvdNum1 = 0
+	sendNum2 = recvdNum2 = 0
+
 	for line in lines:
 		record = Record(line)
 		if record.flow_id == "1":
@@ -72,25 +72,24 @@ def getDropRate(var, rate):
 				sendNum2 += 1
 			if record.event == "r":
 				recvdNum2 += 1
-	if sendNum1 == 0 or sendNum2 == 0:
-		return '0\t0'
-	else:
-		return str(float(sendNum1 - recvdNum1) / float(sendNum1)) + '\t' +\
-		 str(float(sendNum2 - recvdNum2) / float(sendNum2))
+
+	dr1 = 0 if sendNum1 == 0 else float(sendNum1 - recvdNum1) / float(sendNum1)
+	dr2 = 0 if sendNum2 == 0 else float(sendNum2 - recvdNum2) / float(sendNum2)
+	return str(dr1) + '\t' + str(dr2)
 
 def getLatency(var, rate):
 	filename = var + "_output-" + str(rate) + ".tr"
 	f = open(filename)
 	lines = f.readlines()
 	f.close()
+
 	start_time1 = {}
 	end_time1 = {}
-	total_duration1 = 0.0
-	total_packet1 = 0
 	start_time2 = {}
 	end_time2 = {}
-	total_duration2 = 0.0
-	total_packet2 = 0
+	total_duration1 = total_duration2 = 0.0
+	total_packet1 = total_packet2 = 0
+	
 	for line in lines:
 		record = Record(line)
 		if record.flow_id == "1":
@@ -119,10 +118,11 @@ def getLatency(var, rate):
 		if(duration > 0):
 			total_duration2 += duration
 			total_packet2 += 1
-	if total_packet1 == 0 or total_packet2 == 0:
-		return '0\t0'
-	return str(total_duration1 / total_packet1 * 1000) + '\t' +\
-	 str(total_duration2 / total_packet2 * 1000)
+
+	delay1 = 0 if total_packet1 == 0 else total_duration1 / total_packet1 * 1000
+	delay2 = 0 if total_packet2 == 0 else total_duration2 / total_packet2 * 1000
+	
+	return str(delay1) + '\t' + str(delay2)
 
 # Generate trace file
 for var in TCP_Variant2:

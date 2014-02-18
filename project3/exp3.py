@@ -30,27 +30,24 @@ def getThroughput(tvar, qvar, granularity = 0.5):
 
 	for line in lines:
 		record = Record(line)
+		if record.flow_id == "0" and record.event == "r" and record.to_node == "5":
+			#CBR
+			sum1 += record.pkt_size * 8
+		if record.flow_id == "1" and record.event == "r" and record.to_node == "3":
+			#TCP
+			sum2 += record.pkt_size * 8
+
 		if(record.time - clock <= granularity):
-			if record.flow_id == "0" and record.event == "r" and record.to_node == "5":
-				#CBR
-				sum1 += record.pkt_size * 8
-			if record.flow_id == "1" and record.event == "r" and record.to_node == "3":
-				#TCP
-				sum2 += record.pkt_size * 8
+			pass
 		else:
 			thp1 = sum1 / granularity / (1024 * 1024)
 			thp2 = sum2 / granularity / (1024 * 1024)
 			# print(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2))
 			output.write(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2) + "\n")
+			
 			clock += granularity
 			sum1 = sum2 = 0
-			if record.flow_id == "0" and record.event == "r" and record.to_node == "5":
-				#CBR
-				sum1 += record.pkt_size * 8
-			if record.flow_id == "1" and record.event == "r" and record.to_node == "3":
-				#TCP
-				sum2 += record.pkt_size * 8
-
+			
 	# print(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2))
 	output.write(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2) + "\n")
 	output.close()
@@ -87,36 +84,25 @@ def getLatency(tvar, qvar, granularity = 0.5):
 		if(record.time - clock <= granularity):
 			pass
 		else:
-			# if(start_time1 == start_time2):
-			# 	print('same 1')
-			# if(end_time1 == end_time2):
-			# 	print('same 2')
 			packets = {x for x in start_time1.viewkeys() if x in end_time1.viewkeys()}
 			for i in packets:
-				start = start_time1[i]
-				end = end_time1[i]
-				duration = end - start
+				duration = end_time1.get(i) - start_time1.get(i)
 				if(duration > 0):
 					total_duration1 += duration
 					total_packet1 += 1
+			#
 			packets= {x for x in start_time2.viewkeys() if x in end_time2.viewkeys()}
 			for i in packets:
-				start = start_time2[i]
-				end = end_time2[i]
-				duration = end - start
+				duration = end_time2.get(i) - start_time2.get(i)
 				if(duration > 0):
 					total_duration2 += duration
 					total_packet2 += 1
-			if total_packet1 == 0:
-				delay1 = 0
-			else:
-				delay1 = total_duration1 / total_packet1 * 1000
-			if total_packet2 == 0:
-				delay2 = 0
-			else:
-				delay2 = total_duration2 / total_packet2 * 1000
-			output.write(str(clock) + '\t' + str(delay1) + '\t' + str(delay2) + '\n')
+
+			delay1 = 0 if total_packet1 == 0 else total_duration1 / total_packet1 * 1000
+			delay2 = 0 if total_packet2 == 0 else total_duration2 / total_packet2 * 1000
 			
+			output.write(str(clock) + '\t' + str(delay1) + '\t' + str(delay2) + '\n')
+			# Clear counter
 			clock += granularity
 			start_time1 = {}
 			start_time2 = {}
@@ -133,6 +119,7 @@ for var in TCP_Variant3:
 	for q in QUEUE_Variant:
 		os.system(ns_command + "exp3.tcl " + var + " " + q)
 
+# Calculate Throughput and Latency
 for tvar in TCP_Variant3:
 	for qvar in QUEUE_Variant:
 		getThroughput(tvar, qvar)
