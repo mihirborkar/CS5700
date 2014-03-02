@@ -1,0 +1,19 @@
+README
+
+This project is made by Shuyi Zhang(zsyqq@ccs.neu.edu) and Yaming Huang(yummin@ccs.neu.edu).
+
+The code of this project includes:
+1. NS-2 TCL scripts
+   * exp1.tcl
+   * exp2.tcl
+   * exp3.tcl
+2. Python scripts
+   * exp1.py
+   * exp2.py
+   * exp3.py
+
+Run
+For experiment 1, just run exp1.py and it will output files that contains data.
+
+Challenge
+The most challenging part of this project is understand the concept of throughput, droprate, latency and then calculate them by extracting useful data from trace files.

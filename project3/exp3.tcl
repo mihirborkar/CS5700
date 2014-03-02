@@ -10,7 +10,6 @@ set q_var [lindex $argv 1]
 set tf [open ${tcp_var}-${q_var}_output.tr w]
 $ns trace-all $tf
 
-
 # Define a 'finish' procedure
 proc finish {} {
 	global ns tf

@@ -15,10 +15,8 @@ gnuplot pic_builder/exp2_NewReno_Vegas_throughput.gnu
 gnuplot pic_builder/exp2_NewReno_Vegas_droprate.gnu
 gnuplot pic_builder/exp2_NewReno_Vegas_delay.gnu
 
-gnuplot pic_builder/exp3_Sack_RED_delay.gnu
-gnuplot pic_builder/exp3_Sack_DropTail_delay.gnu
-gnuplot pic_builder/exp3_Reno_DropTail_delay.gnu
-gnuplot pic_builder/exp3_Reno_RED_delay.gnu
+gnuplot pic_builder/exp3_Sack_delay.gnu
+gnuplot pic_builder/exp3_Reno_delay.gnu
 gnuplot pic_builder/exp3_Sack_RED_throughput.gnu
 gnuplot pic_builder/exp3_Sack_DropTail_throughput.gnu
 gnuplot pic_builder/exp3_Reno_DropTail_throughput.gnu

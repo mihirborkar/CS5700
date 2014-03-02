@@ -36,7 +36,6 @@ def getThroughput(var, rate):
 			if record.event == "r":
 				recvdSize += record.pkt_size * 8
 				end_time = record.time
-
 	#print('DEBUG:' + str(recvdSize) + ' ' + str(end_time) + ' ' + str(start_time))
 	return recvdSize / (end_time - start_time) / (1024 * 1024)
 

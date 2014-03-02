@@ -42,17 +42,13 @@ set null [new Agent/Null]
 $ns attach-agent $n3 $null
 $ns connect $udp $null
 
-
-
 #Setup a CBR over UDP connection
 set cbr [new Application/Traffic/CBR]
 $cbr attach-agent $udp
 $cbr set type_ CBR
-$cbr set packet_size_ 1000
 # change rate until tcp can reach its bottleneck
 $cbr set rate_ ${rate}mb
 $cbr set random_ false
-
 
 #Setup a TCP conncection
 if {$var1 eq "Reno"} {

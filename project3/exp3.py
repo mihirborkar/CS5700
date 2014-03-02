@@ -33,7 +33,7 @@ def getThroughput(tvar, qvar, granularity = 0.5):
 		if record.flow_id == "0" and record.event == "r" and record.to_node == "5":
 			#CBR
 			sum1 += record.pkt_size * 8
-		if record.flow_id == "1" and record.event == "r" and record.to_node == "3":
+		if record.flow_id == "1" and record.event == "r":
 			#TCP
 			sum2 += record.pkt_size * 8
 
@@ -44,10 +44,10 @@ def getThroughput(tvar, qvar, granularity = 0.5):
 			thp2 = sum2 / granularity / (1024 * 1024)
 			# print(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2))
 			output.write(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2) + "\n")
-			
+
 			clock += granularity
 			sum1 = sum2 = 0
-			
+
 	# print(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2))
 	output.write(str(clock) + "\t" + str(thp1)+ "\t" + str(thp2) + "\n")
 	output.close()
@@ -80,7 +80,7 @@ def getLatency(tvar, qvar, granularity = 0.5):
 				start_time2.update({record.seq_num : record.time})
 			if record.event == "r" and record.to_node == "0":
 				end_time2.update({record.seq_num : record.time})
-		
+
 		if(record.time - clock <= granularity):
 			pass
 		else:
@@ -100,7 +100,7 @@ def getLatency(tvar, qvar, granularity = 0.5):
 
 			delay1 = 0 if total_packet1 == 0 else total_duration1 / total_packet1 * 1000
 			delay2 = 0 if total_packet2 == 0 else total_duration2 / total_packet2 * 1000
-			
+
 			output.write(str(clock) + '\t' + str(delay1) + '\t' + str(delay2) + '\n')
 			# Clear counter
 			clock += granularity
@@ -110,9 +110,9 @@ def getLatency(tvar, qvar, granularity = 0.5):
 			end_time2 = {}
 			total_duration1 = total_duration2 = 0.0
 			total_packet1 = total_packet2 = 0
-		
+
 	output.write(str(clock) + '\t' + str(delay1) + '\t' + str(delay2) + '\n')
-	output.close()	
+	output.close()
 
 # Generate trace files
 for var in TCP_Variant3:
