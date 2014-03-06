@@ -3,6 +3,7 @@ import struct
 import sys
 
 from random import randint
+from utility import checksum
 
 '''
 IP Header
@@ -22,19 +23,6 @@ IP Header
 |                    Options                    |    Padding    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
-
-# checksum functions needed for calculation checksum
-def checksum(msg):
-    s = 0
-    # loop taking 2 characters at a time
-    for i in range(0, len(msg), 2):
-        w = ord(msg[i]) + (ord(msg[i+1]) << 8 )
-        s = s + w
-    s = (s>>16) + (s & 0xffff);
-    s = s + (s >> 16);
-    #complement and mask to 4 byte short
-    s = ~s & 0xffff
-    return s
 
 class IP_Packet:
 
@@ -59,7 +47,7 @@ class IP_Packet:
     def pack(self):
         self.id = randint(0, 65535)
         self.tot_len = self.ihl * 4 + len(self.data)
-        
+
         # assemble header fileds without checksum
         header = struct.pack('!BBHHHBBH4s4s', \
          # the ! in the pack format string means network order
@@ -73,10 +61,10 @@ class IP_Packet:
          self.check, # H
          self.saddr, # 4s: 4 char[], 4 Bytes
          self.daddr) # 4s
-         
+
         # compute checksum and fill it
         self.check = checksum(header)
-        
+
         return header + self.data
 
     def fragment(self):
@@ -88,7 +76,7 @@ class IP_Packet:
     def toString(self):
         print('[DEBUG]The IP Packet\n')
 
-class IPSocket:
+class IP_Socket:
 
     def __init__(self):
         pass

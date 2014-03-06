@@ -28,7 +28,7 @@ class HTTP_Packet():
         #print '[DEBUG]: HTTP Request\n' + request
         return request
 
-class My_HTTP_Socket:
+class HTTP_Socket:
     def __init__(self, url):
         def get_filename(url):
             # e.g. url: http://cs5700.ccs.neu.edu/fakebook
@@ -83,12 +83,16 @@ class My_HTTP_Socket:
                 pass
         f.close()
 
+    def get_status(self):
+        # TODO
+        pass
+
     def close(self):
         self.sock.close()
 
 if __name__ == "__main__":
     url = sys.argv[1]
-    sock = My_HTTP_Socket(url)
+    sock = HTTP_Socket(url)
     sock.send()
     sock.recv(0.1)
     sock.close()

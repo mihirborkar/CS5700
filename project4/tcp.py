@@ -1,7 +1,7 @@
 import socket
 import struct
 from ip import *
-from utility import get_IP_address
+from utility import get_IP_address, checksum
 from random import randint
 
 '''
@@ -26,23 +26,6 @@ TCP Header
 |                             data                              |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
-
-# checksum functions needed for calculation checksum
-def checksum(msg):
-    s = 0
-
-    # loop taking 2 characters at a time
-    for i in range(0, len(msg), 2):
-        w = ord(msg[i]) + (ord(msg[i+1]) << 8 )
-        s = s + w
-
-    s = (s>>16) + (s & 0xffff);
-    s = s + (s >> 16);
-
-    #complement and mask to 4 byte short
-    s = ~s & 0xffff
-
-    return s
 
 class TCP_Packet:
 
@@ -118,13 +101,13 @@ class TCP_Packet:
 
     def toString(self):
         print('[DEBUG]The TCP Packet\n')
-        print 'Source Port : ' + str(source_port) +\
-              ' Dest Port : ' + str(dest_port) +\
-              ' Sequence Number : ' + str(sequence) + \
-              ' Acknowledgement : ' + str(acknowledgement) + \
-              ' TCP header length : ' + str(tcph_length)
+        print 'Source Port : ' + str(self.src_port) +\
+              ' Dest Port : ' + str(self.dst_port) +\
+              ' Sequence Number : ' + str(self.seq) + \
+              ' Acknowledgement : ' + str(self.ack_seq) + \
+              ' TCP header length : ' + str(self.doff * 4)
 
-class TCPSocket:
+class TCP_Socket:
 
     def __init__(self):
         self.src_ip = ''
@@ -137,11 +120,12 @@ class TCPSocket:
         self.dst_ip = socket.gethostbyname(hostname)
         self.dst_port = port
         self.src_ip = get_IP_address()
-        self.src_port = 49472#randint(1024, 65535)
-        # TODO: Check
+        self.src_port = self.get_open_port()
+        print '[DEBUG]Source Port:' + str(self.src_port)
+
         # Three way handshake
         pack1 = TCP_Packet(self.src_ip, self.src_port, self.dst_ip, self.dst_port)
-        pack1.seq = 123
+        pack1.seq = randint(0, 65535)
         self.sock.sendto(pack1.pack(), (self.dst_ip, self.dst_port))
         pack2 = self.sock.recvfrom(2048)
         print pack2
@@ -149,7 +133,12 @@ class TCPSocket:
         # pack3
         # self.sock.sendto(pack3)
 
-
+    def get_open_port(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(('', 0))
+        port = s.getsockname()[1]
+        s.close()
+        return port
 
     def close(self):
         # Four way tear down
