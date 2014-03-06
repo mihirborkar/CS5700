@@ -11,7 +11,6 @@ def get_MAC_address(iface):
 def get_IP_address():
     return socket.gethostbyname(socket.gethostname())
 
-print 'MAC Addr'
-print get_MAC_address('en0')
-print 'IP Addr'
-print get_IP_address()
+if __name__ == "__main__":
+    print 'MAC Address: ' + get_MAC_address('en0')
+    print 'IP Address: ' + get_IP_address()

@@ -2,6 +2,8 @@ import socket
 import struct
 import sys
 
+from random import randint
+
 '''
 IP Header
 0                   1                   2                   3
@@ -36,38 +38,46 @@ def checksum(msg):
 
 class IP_Packet:
 
-    def __init__(self, source_ip, dest_ip):
+    def __init__(self, source_ip, dest_ip, data = ''):
         # ip header fields
-        self.ip_ihl = 5 # IHL
-        self.ip_ver = 4 # Version
-        self.ip_tos = 0 # Type
-        self.ip_tot_len = 20 # Total length
-        self.ip_id = 54321   #ID
-        self.ip_flag_df = 1
-        self.ip_flag_mf = 0
-        self.ip_offset = 0
-        self.ip_ttl = 255   # Time to live
-        self.ip_proto = socket.IPPROTO_TCP  # protocol
-        self.ip_check = 0    # checksum
-        self.ip_saddr = socket.inet_aton(source_ip)
-        self.ip_daddr = socket.inet_aton(dest_ip)
+        self.ihl = 5 # IHL
+        self.ver = 4 # Version
+        self.tos = 0 # Type
+        self.tot_len = 20 # Total length
+        self.id = 0   #ID
+        self.flag_df = 1 # 1 bit, Do Not Fragment
+        self.flag_mf = 0 # 1 bit, More Fragments
+        self.offset = 0
+        self.ttl = 255   # Time to live
+        self.proto = socket.IPPROTO_TCP  # protocol
+        self.check = 0    # checksum
+        self.saddr = socket.inet_aton(source_ip)
+        self.daddr = socket.inet_aton(dest_ip)
+        self.data = data
 
 
     def pack(self):
-        ip_header = struct.pack('!BBHHHBBH4s4s', \
+        self.id = randint(0, 65535)
+        self.tot_len = self.ihl * 4 + len(self.data)
+        
+        # assemble header fileds without checksum
+        header = struct.pack('!BBHHHBBH4s4s', \
          # the ! in the pack format string means network order
-         (self.ip_ver << 4) + self.ip_ihl, # B: unsigned char, 1 Byte
-         self.ip_tos, # B
-         self.ip_tot_len, # H: unsigned short, 2 Bytes
-         self.ip_id, # H
+         (self.ver << 4) + self.ihl, # B: unsigned char, 1 Byte
+         self.tos, # B
+         self.tot_len, # H: unsigned short, 2 Bytes
+         self.id, # H
          (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset, # H
-         self.ip_ttl, # B
-         self.ip_proto, # B
-         self.ip_check, # H
-         self.ip_saddr, # 4s: 4 char[], 4 Bytes
-         self.ip_daddr) # 4s
+         self.ttl, # B
+         self.proto, # B
+         self.check, # H
+         self.saddr, # 4s: 4 char[], 4 Bytes
+         self.daddr) # 4s
+         
         # compute checksum and fill it
-        self.check = checksum(ip_header)
+        self.check = checksum(header)
+        
+        return header + self.data
 
     def fragment(self):
         pass

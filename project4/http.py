@@ -55,7 +55,6 @@ class My_HTTP_Socket:
     def recv(self, timeout=2):
         '''
         Receive data and write it to a file
-        TODO: Remove HTTP response header when writing a file
         '''
         f = open(self.filename, 'wb+')
         self.sock.setblocking(0)
@@ -72,7 +71,11 @@ class My_HTTP_Socket:
             try:
                 data=self.sock.recv(2048)
                 if data:
-                    f.write(data)
+                    if data.startswith('HTTP/1.1'):
+                        pos = data.find('\r\n\r\n') + 4
+                        f.write(data[pos:])
+                    else:
+                        f.write(data)
                     begin=time.time()
                 else:
                     time.sleep(0.1)
@@ -80,8 +83,12 @@ class My_HTTP_Socket:
                 pass
         f.close()
 
+    def close(self):
+        self.sock.close()
+
 if __name__ == "__main__":
     url = sys.argv[1]
     sock = My_HTTP_Socket(url)
     sock.send()
     sock.recv(0.1)
+    sock.close()
