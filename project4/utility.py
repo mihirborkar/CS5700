@@ -8,7 +8,7 @@ def get_MAC_address(iface):
     if len(mac)==17:
         return mac
 
-def get_IP_address():
+def get_localhost_IP():
     return socket.gethostbyname(socket.gethostname())
 
 # checksum functions needed for calculation checksum

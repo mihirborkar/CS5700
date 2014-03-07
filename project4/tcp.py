@@ -1,7 +1,7 @@
 import socket
 import struct
 from ip import *
-from utility import get_IP_address, checksum
+from utility import get_localhost_IP, checksum
 from random import randint
 
 '''
@@ -38,7 +38,7 @@ class TCP_Packet:
         self.doff = 5    #4 bit field, size of tcp header, 5 * 4 = 20 bytes
         #tcp flags
         self.fin = 0
-        self.syn = 1
+        self.syn = 0
         self.rst = 0
         self.psh = 0
         self.ack = 0
@@ -51,7 +51,7 @@ class TCP_Packet:
         self.src_ip = socket.inet_aton(src_ip)
         self.dst_ip = socket.inet_aton(dst_ip)
 
-    def pack(self):
+    def create(self):
         # TCP data offset
         offset_res = (self.doff << 4) + 0
         # TCP flags
@@ -114,19 +114,23 @@ class TCP_Socket:
         self.src_port = 0
         self.dst_ip = ''
         self.dst_port = 0
+	self.seq = 0
+	self.ack = 0
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
     def connect(self, hostname, port = 80):
         self.dst_ip = socket.gethostbyname(hostname)
         self.dst_port = port
-        self.src_ip = get_IP_address()
+        self.src_ip = get_localhost_IP()
         self.src_port = self.get_open_port()
-        print '[DEBUG]Source Port:' + str(self.src_port)
+        # print '[DEBUG]Source Port:' + str(self.src_port)
 
-        # Three way handshake
-        pack1 = TCP_Packet(self.src_ip, self.src_port, self.dst_ip, self.dst_port)
-        pack1.seq = randint(0, 65535)
-        self.sock.sendto(pack1.pack(), (self.dst_ip, self.dst_port))
+        # Three-way handshake
+	# Send SYN packet
+        self.seq = randint(0, 65535)
+	pack = self.build_packet('SYN')
+        self.sock.sendto(pack.create(), (self.dst_ip, self.dst_port))
+	#Receive SYN+ACK
         pack2 = self.sock.recvfrom(2048)
         print pack2
         # ack = pack2
@@ -134,22 +138,47 @@ class TCP_Socket:
         # self.sock.sendto(pack3)
 
     def get_open_port(self):
+	'''Generate a free port'''
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind(('', 0))
         port = s.getsockname()[1]
         s.close()
         return port
 
+    def build_packet(self, type):
+	if type == 'SYN':
+            pack = TCP_Packet(self.src_ip, self.src_port,\
+                              self.dst_ip, self.dst_port)
+	    pack.syn = 1
+	    pack.seq = self.seq
+	    pack.ack = self.ack
+	elif type == 'ACK':
+	    pack = TCP_Packet(self.src_ip, self.src_port,\
+                              self.dst_ip, self.dst_port)
+	    pack.ack = 1
+	elif type == 'FIN':
+	    pass
+	return pack
+
     def close(self):
         # Four way tear down
         pass
 
-    def send(request):
+    def send(self, request):
         pass
 
-    def recv(buf_size):
+    def recv(self, buf_size):
         pass
+    
+    def raw_recv(self):
+	pack = TCP_Packet()
+	start_time = time.time()
+	while (time.time() - start_time) < TIME_OUT:
+	    pack.reset()
+	    pack = self.sock.recv(1024)
+	    pack.src_ip = self.des_ip
+	    pack.dst_ip = self.src_ip
 
 if __name__ == "__main__":
-    sock = TCPSocket()
+    sock = TCP_Socket()
     sock.connect('cs5700.ccs.neu.edu', 80)
