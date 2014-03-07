@@ -39,12 +39,12 @@ class IP_Packet:
         self.ttl = 255   # Time to live
         self.proto = socket.IPPROTO_TCP  # protocol
         self.check = 0    # checksum
-        self.saddr = socket.inet_aton(source_ip)
-        self.daddr = socket.inet_aton(dest_ip)
+        self.src = socket.inet_aton(source_ip)
+        self.dst = socket.inet_aton(dest_ip)
         self.data = data
 
 
-    def pack(self):
+    def create(self):
         self.id = randint(0, 65535)
         self.tot_len = self.ihl * 4 + len(self.data)
 
@@ -59,11 +59,24 @@ class IP_Packet:
          self.ttl, # B
          self.proto, # B
          self.check, # H
-         self.saddr, # 4s: 4 char[], 4 Bytes
-         self.daddr) # 4s
+         self.src, # 4s: 4 char[], 4 Bytes
+         self.dst) # 4s
 
         # compute checksum and fill it
         self.check = checksum(header)
+
+        header = struct.pack('!BBHHHBBH4s4s', \
+         # the ! in the pack format string means network order
+         (self.ver << 4) + self.ihl, # B: unsigned char, 1 Byte
+         self.tos, # B
+         self.tot_len, # H: unsigned short, 2 Bytes
+         self.id, # H
+         (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset, # H
+         self.ttl, # B
+         self.proto, # B
+         self.check, # H
+         self.src, # 4s: 4 char[], 4 Bytes
+         self.dst) # 4s
 
         return header + self.data
 
@@ -73,28 +86,33 @@ class IP_Packet:
     def reassemble(self):
         pass
 
-    def toString(self):
+    def printPacket(self):
         print('[DEBUG]The IP Packet\n')
+        print 'Source: ' + str(self.src) +\
+              ' Destination: ' + str(self.dst)
 
 class IP_Socket:
 
-    def __init__(self):
-        pass
+    def __init__(self, src = '', dst = ''):
+        self.src = src
+        self.dst = dst
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        except socket.error, msg:
+            print 'Socket could not be created. Error Message:' + msg[1]
+            sys.exit()
 
-    def send(self, request):
-        pass
+    def send(self, src, dst, data):
+        self.src = src
+        self.dst = dst
+        pack = IP_Packet(src, dst, data)
+        self.sock.sendto(pack.create(), (dst, 0))
 
-    def recv(self, request):
-        pass
+    def recv(self):
+        packet, address = self.sock.recvfrom(1024)
+        print('[DEBUG IP Recv]: From' + address + '\n' + packet)
+        return packet
 
 if __name__ == "__main__":
     pass
-# #create a raw socket
-# try:
-#     s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
-# except socket.error , msg:
-#     print 'Socket could not be created. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
-#     sys.exit()
 
-# # tell kernel not to put in headers, since we are providing it
-# s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
