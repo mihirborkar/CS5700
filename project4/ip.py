@@ -24,95 +24,139 @@ IP Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
 
+
 class IP_Packet:
 
-    def __init__(self, source_ip, dest_ip, data = ''):
+    def __init__(self, src_ip, dst_ip, data=''):
         # ip header fields
-        self.ihl = 5 # IHL
-        self.ver = 4 # Version
-        self.tos = 0 # Type
-        self.tot_len = 20 # Total length
-        self.id = 0   #ID
-        self.flag_df = 1 # 1 bit, Do Not Fragment
-        self.flag_mf = 0 # 1 bit, More Fragments
+        self.ver = 4  # Version
+        self.ihl = 5  # IHL
+        self.tos = 0  # Type
+        self.tot_len = 20  # Total length
+        self.id = 0    # ID
+        self.flag_df = 1  # 1 bit, Do Not Fragment
+        self.flag_mf = 0  # 1 bit, More Fragments
         self.offset = 0
-        self.ttl = 255   # Time to live
-        self.proto = socket.IPPROTO_TCP  # protocol
-        self.check = 0    # checksum
-        self.src = socket.inet_aton(source_ip)
-        self.dst = socket.inet_aton(dest_ip)
+        self.ttl = 255    # Time to live
+        self.proto = socket.IPPROTO_TCP   # protocol
+        self.check = 0     # checksum
+        self.src = socket.inet_aton(src_ip)
+        self.dst = socket.inet_aton(dst_ip)
         self.data = data
 
+    def reset(self):
+        self.ver = 4  # Version
+        self.ihl = 5  # IHL
+        self.tos = 0  # Type
+        self.tot_len = 20  # Total length
+        self.id = 0    # ID
+        self.flag_df = 1  # 1 bit, Do Not Fragment
+        self.flag_mf = 0  # 1 bit, More Fragments
+        self.offset = 0
+        self.ttl = 255  # Time to live
+        self.proto = socket.IPPROTO_TCP   # protocol
+        self.check = 0  # checksum
+        self.src = socket.inet_aton('0')
+        self.dst = socket.inet_aton('0')
+        self.data = ''
 
     def create(self):
+        # Set fields
         self.id = randint(0, 65535)
         self.tot_len = self.ihl * 4 + len(self.data)
 
-        # assemble header fileds without checksum
-        header = struct.pack('!BBHHHBBH4s4s', \
-         # the ! in the pack format string means network order
-         (self.ver << 4) + self.ihl, # B: unsigned char, 1 Byte
-         self.tos, # B
-         self.tot_len, # H: unsigned short, 2 Bytes
-         self.id, # H
-         (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset, # H
-         self.ttl, # B
-         self.proto, # B
-         self.check, # H
-         self.src, # 4s: 4 char[], 4 Bytes
-         self.dst) # 4s
+        # assemble header without checksum
+        header = struct.pack('!BBHHHBBH4s4s',
+                             (self.ver << 4) + self.ihl,   # B: unsigned char, 1 Byte
+                             self.tos,   # B
+                             self.tot_len,   # H: unsigned short, 2 Bytes
+                             self.id,   # H
+                             (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset,   # H
+                             self.ttl,   # B
+                             self.proto,   # B
+                             self.check,   # H
+                             self.src,   # 4s: 4 char[], 4 Bytes
+                             self.dst)  # 4s
 
-        # compute checksum and fill it
+        # Compute checksum
         self.check = checksum(header)
 
-        header = struct.pack('!BBHHHBBH4s4s', \
-         # the ! in the pack format string means network order
-         (self.ver << 4) + self.ihl, # B: unsigned char, 1 Byte
-         self.tos, # B
-         self.tot_len, # H: unsigned short, 2 Bytes
-         self.id, # H
-         (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset, # H
-         self.ttl, # B
-         self.proto, # B
-         self.check, # H
-         self.src, # 4s: 4 char[], 4 Bytes
-         self.dst) # 4s
+        # reassemble header with checksum
+        header = struct.pack('!BBHHHBBH4s4s',
+                             (self.ver << 4) + self.ihl,   # B: unsigned char, 1 Byte
+                             self.tos,   # B
+                             self.tot_len,   # H: unsigned short, 2 Bytes
+                             self.id,   # H
+                             (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset,   # H
+                             self.ttl,   # B
+                             self.proto,   # B
+                             self.check,   # H
+                             self.src,   # 4s: 4 char[], 4 Bytes
+                             self.dst)  # 4s
 
         return header + self.data
 
-    def fragment(self):
-        pass
+    def disassemble(self, raw_packet):
 
-    def reassemble(self):
-        pass
+        [ver_ihl,
+         self.tos,
+         self.tot_len,
+         self.id,
+         flag_offset,
+         self.ttl,
+         self.proto,
+         self.check,
+         self.src,
+         self.dst] = struct.unpack('!BBHHHBBH4s4s', raw_packet[0:20])
 
-    def printPacket(self):
+        self.ver = (ver_ihl & 0xf0) >> 4
+        self.ihl = ver_ihl & 0x0f
+
+        self.flag_df = (flag_offset & 0x40) >> 14
+        self.flag_mf = (flag_offset & 0x20) >> 13
+        self.offset = flag_offset & 0x1f
+
+        self.data = raw_packet[4 * self.ihl:self.tot_len]
+
+         # compare chksum
+        header = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
+
+        if checksum(header) != self.check:
+            sys.exit('IP checksum does not match')
+
+    def print_packet(self):
         print('[DEBUG]The IP Packet\n')
-        print 'Source: ' + str(self.src) +\
-              ' Destination: ' + str(self.dst)
+        print 'Source: ' + socket.inet_ntoa(self.src) +\
+              ' Destination: ' + socket.inet_ntoa(self.dst)
+
 
 class IP_Socket:
 
-    def __init__(self, src = '', dst = ''):
-        self.src = src
-        self.dst = dst
-        try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
-        except socket.error, msg:
-            print 'Socket could not be created. Error Message:' + msg[1]
-            sys.exit()
+    def __init__(self, src_ip='', des_ip=''):
+        self.src = src_ip
+        self.des = des_ip
+        self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
-    def send(self, src, dst, data):
-        self.src = src
-        self.dst = dst
-        pack = IP_Packet(src, dst, data)
-        self.sock.sendto(pack.create(), (dst, 0))
+    def send(self, src_ip, des_ip, data=''):
+        self.src = src_ip
+        self.des = des_ip
+        packet = IP_Packet(src_ip, des_ip, data)
+        # send via network layer
+        self.send_sock.sendto(packet.create(), (self.des, 0))
+        print('[DEBUG] Send IP Packet:')
+        packet.print_packet()
 
     def recv(self):
-        packet, address = self.sock.recvfrom(1024)
-        print('[DEBUG IP Recv]: From' + address + '\n' + packet)
-        return packet
+        packet = IP_Packet('0', '0')
+        while True:
+            packet.reset()
+             # recv via network layer
+            pkt, addr = self.recv_sock.recvfrom(65535)
+            packet.disassemble(pkt)
 
-if __name__ == "__main__":
-    pass
+            print('[DEBUG IP Recv]:' + addr)
+            packet.print_packet()
 
+            if packet.proto == socket.IPPROTO_TCP and packet.src == self.des and packet.dst == self.src:
+                    return packet.data
