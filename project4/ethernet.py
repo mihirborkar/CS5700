@@ -24,13 +24,16 @@ ARP Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
 
+
+ARPOP_REQUEST = 1
+ARPOP_REPLY = 2
+
+
 class Ethernet_Packet:
-    ARPOP_REQUEST = 1
-    ARPOP_REPLY = 2
 
     def __init__(self, data=''):
-        self.sec = struct.pack('!6B', *(0x00,)*6)
-        self.dst = struct.pack('!6B', *(0x00,)*6)
+        self.src = pack('!6B', *(0x00,)*6)
+        self.dst = pack('!6B', *(0x00,)*6)
         self.type = 0
         self.data = data
         
@@ -43,42 +46,48 @@ class Ethernet_Packet:
     def print_packet(self):
         print('[DEBUG]Print Ethernet Packet')
         print('From:' + self.src + '\tTo:' + self.dst)
-        
+
+
 class ARP_Packet:
+
     def __init__(self):
-        self.htype = 0x0001 # ethernet
-        self.ptype = 0x0800 # ip
-        self.hlen = 6 # len(MAC address)
-        self.plen = 4 # len(IP address)
+        self.htype = 0x0001  # ethernet
+        self.ptype = 0x0800  # ip
+        self.hlen = 6  # len(MAC address)
+        self.plen = 4  # len(IP address)
         self.op = 0
         self.src_mac = ''
         self.src_ip = ''
         self.dst_mac = ''
         self.dst_ip = ''
         
-    def create(self, src_mac, src_ip. dst_mac, dst_ip):
+    def create(self, src_mac, src_ip, dst_mac, dst_ip):
         self.op = ARPOP_REQUEST
         self.src_mac = ''
         self.src_ip = ''
         self.dst_mac = ''
         self.dst_ip = ''
-        arpfram = struct.pack('!HHBBH6s4s6s4s', 
-                              self.htype,
-                              self.ptype,
-                              self.hlen,
-                              self.plen,
-                              self.op,
-                              src)
-        
+        arpfram = pack('!HHBBH6s4s6s4s',
+                       self.htype,
+                       self.ptype,
+                       self.hlen,
+                       self.plen,
+                       self.op,
+                       self.src_mac,
+                       self.src_ip,
+                       self.dst_mac,
+                       self.dst_ip)
         
 
 class Ethernet_Socket:
     def __init__(self):
         self.send_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.SOCK_RAW)
-        sock.bind(('eth0', socket.SOCK_RAW))
+        self.send_sock.bind(('eth0', socket.SOCK_RAW))
         
         self.recv_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0800))
         self.recv_sock.setblocking(0)
+
+        self.src_mac = ''
         
     def send(self):
         packet = Ethernet_Packet()
@@ -91,7 +100,7 @@ class Ethernet_Socket:
         r_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0800))
         r_sock.settimeout(1)
         
-        self.src_nac = get_mac_address('eth0')
+        self.src_mac = get_mac_address('eth0')
         arp_pack = ARP_Packet()
         
         

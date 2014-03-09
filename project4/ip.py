@@ -1,7 +1,6 @@
 import socket
 import struct
 import sys
-import time
 
 from random import randint
 from utility import checksum
@@ -151,7 +150,7 @@ class IP_Socket:
     def recv(self, timeout=0.5):
         packet = IP_Packet('0', '0')
         self.recv_sock.setblocking(0)
-        
+
         while True:
             pkt = self.recv_sock.recv(2048)
             packet.disassemble(pkt)
@@ -159,10 +158,9 @@ class IP_Socket:
             print('[DEBUG]IP Recv:')
             packet.print_packet()
 
-            if packet.proto == socket.IPPROTO_TCP and packet.src == self.des 
-               and packet.dst == self.src:
+            if packet.proto == socket.IPPROTO_TCP and packet.src == self.des and packet.dst == self.src:
                     return packet.data
-                
-        
+
+
 if __name__ == '__main__':
     pass

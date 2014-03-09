@@ -187,9 +187,9 @@ class TCP_Packet:
         print('[DEBUG]The TCP Packet')
         print 'Source Port : ' + str(self.src_port) +\
               ' Source IP : ' + socket.inet_ntoa(self.src_ip) +\
-              ' Destination Port : ' + str(self.dst_port) +\
+              '\nDestination Port : ' + str(self.dst_port) +\
               ' Destination IP : ' + socket.inet_ntoa(self.dst_ip) +\
-              ' Sequence Number : ' + str(self.seq) +\
+              '\nSequence Number : ' + str(self.seq) +\
               ' Acknowledgement : ' + str(self.ack_seq) +\
               ' TCP header length : ' + str(self.doff * 4)
 
