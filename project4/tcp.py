@@ -134,7 +134,7 @@ class TCP_Packet:
          flags,
          self.window,
          self.check,
-         self.urg_ptr] = struct.unpack('!HHIIBBHHH', raw_packet[0:20])
+         self.urg_ptr] = struct.unpack('!HHLLBBHHH', raw_packet[0:20])
 
         self.doff = offset_res >> 4
         # get flags
@@ -184,9 +184,9 @@ class TCP_Packet:
         return tcp_header + self.data
 
     def print_packet(self):
-        print('[DEBUG]The TCP Packet\n')
+        print('[DEBUG]The TCP Packet')
         print 'Source Port : ' + str(self.src_port) +\
-              'Source IP : ' + socket.inet_ntoa(self.src_ip) +\
+              ' Source IP : ' + socket.inet_ntoa(self.src_ip) +\
               ' Destination Port : ' + str(self.dst_port) +\
               ' Destination IP : ' + socket.inet_ntoa(self.dst_ip) +\
               ' Sequence Number : ' + str(self.seq) +\
@@ -230,6 +230,8 @@ class TCP_Socket:
         # Receive SYN + ACK
         packet.reset()
         packet = self._recv()
+        print('[DEBUG] Connect recv')
+        print repr(packet.data)
         if packet == '':
             sys.exit('Socket Time Out During Connection')
         if packet.ack_seq == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
@@ -332,7 +334,7 @@ class TCP_Socket:
         return port
 
     def _send(self, src_ip, des_ip, packet):
-        print('[DEBUG]Send Packet:\n')
+        print('[DEBUG]Send Packet:')
         packet.print_packet()
 
         self.sock.send(src_ip, des_ip, packet.create())

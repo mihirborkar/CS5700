@@ -1,6 +1,7 @@
 import socket
 import struct
 import sys
+import time
 
 from random import randint
 from utility import checksum
@@ -125,7 +126,7 @@ class IP_Packet:
             sys.exit('IP checksum does not match')
 
     def print_packet(self):
-        print('[DEBUG]The IP Packet\n')
+        print('[DEBUG]The IP Packet')
         print 'Source: ' + socket.inet_ntoa(self.src) +\
               ' Destination: ' + socket.inet_ntoa(self.dst)
 
@@ -147,16 +148,36 @@ class IP_Socket:
         print('[DEBUG] Send IP Packet:')
         packet.print_packet()
 
-    def recv(self):
+    def recv(self, timeout=0.5):
         packet = IP_Packet('0', '0')
+        self.recv_sock.setblocking(0)
+        total_data=[]
+        begin=time.time()
         while True:
-            packet.reset()
-             # recv via network layer
-            pkt, addr = self.recv_sock.recvfrom(65535)
-            packet.disassemble(pkt)
+            if total_data and time.time() - begin > timeout:
+                break
+            elif time.time() - begin > timeout * 2:
+                break
+            try:
+                pkt = self.recv_sock.recv(2048)
+                packet.disassemble(pkt)
 
-            print('[DEBUG IP Recv]:' + addr)
-            packet.print_packet()
+                print('[DEBUG IP Recv]:')
+                packet.print_packet()
 
-            if packet.proto == socket.IPPROTO_TCP and packet.src == self.des and packet.dst == self.src:
-                    return packet.data
+                if packet.proto == socket.IPPROTO_TCP and packet.src == self.des and packet.dst == self.src:
+                        total_data.append(packet.data)
+            except:
+                pass
+        return ''.join(total_data)
+        # while True:
+        #     packet.reset()
+        #      # recv via network layer
+        #     pkt, addr = self.recv_sock.recvfrom(1024)
+        #     packet.disassemble(pkt)
+
+        #     print('[DEBUG IP Recv]:' + addr)
+        #     packet.print_packet()
+
+        #     if packet.proto == socket.IPPROTO_TCP and packet.src == self.des and packet.dst == self.src:
+        #             return packet.data

@@ -61,7 +61,7 @@ class HTTP_Socket:
         total_data=[];
         data='';
         begin=time.time()
-        while 1:
+        while True:
             #if you got some data, then break after wait sec
             if total_data and time.time()-begin>timeout:
                 break

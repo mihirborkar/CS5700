@@ -1,5 +1,7 @@
-import socket
 import commands
+import fcntl
+import socket
+import struct
 
 
 def get_mac_address(iface):
@@ -11,9 +13,12 @@ def get_mac_address(iface):
         return mac
 
 
-def get_localhost_ip():
-    return socket.gethostbyname(socket.gethostname())
-
+def get_localhost_ip(ifname='eth0'):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(s.fileno(),
+        0x8915,  # SIOCGIFADDR
+        struct.pack('256s', ifname[:15])
+    )[20:24])
 
 def checksum(msg):
     s = 0
@@ -28,5 +33,6 @@ def checksum(msg):
     return s
 
 if __name__ == "__main__":
-    print 'MAC Address: ' + get_mac_address('en0')
+    print 'MAC Address: ' + get_mac_address('eth0')
     print 'IP Address: ' + get_localhost_ip()
+    print get_ip_address('eth0')
