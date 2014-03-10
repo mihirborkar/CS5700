@@ -1,12 +1,11 @@
 from ip import IP_Socket
 from random import randint
-from utility import get_localhost_ip, checksum
+from utility import get_localhost_ip, get_open_port, checksum
+import binascii
 import socket
 import struct
 import sys
 import time
-
-TIME_OUT = 1
 
 '''
 TCP Header
@@ -31,6 +30,7 @@ TCP Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
 
+TIME_OUT = 1
 
 class TCP_Packet:
 
@@ -70,7 +70,7 @@ class TCP_Packet:
         self.psh = 0
         self.ack = 0
         self.urg = 0
-        self.window = 6000  # maximum allowed window size
+        self.window = 4096  # maximum allowed window size
         self.check = 0
         self.urg_ptr = 0
         self.data = ''
@@ -106,26 +106,26 @@ class TCP_Packet:
                                     0,  # Reserved byte
                                     socket.IPPROTO_TCP,  # Protocol
                                     len(tcp_header) + len(self.data))
-        pseudo_header = pseudo_header + tcp_header + self.data
 
         # Compute checksum
-        self.check = checksum(pseudo_header)
+        self.check = checksum(pseudo_header + tcp_header + self.data)
 
-        tcp_header = struct.pack('!HHLLBBHHH',
+        # checksum is NOT in network byte order
+        tcp_header = struct.pack('!HHLLBBH',
                                  self.src_port,  # H: 2 Bytes
                                  self.dst_port,  # H
                                  self.seq,  # L: 4 Bytes
                                  self.ack_seq,  # L
                                  offset_res,  # B
                                  flags,  # B
-                                 self.window,  # H
-                                 self.check,  # H
-                                 self.urg_ptr)  # H
+                                 self.window) +\
+                     struct.pack('H', self.check) +\
+                     struct.pack('!H', self.urg_ptr)
 
         return tcp_header + self.data
 
     def disassemble(self, raw_packet):
-    # disassemble tcp header
+        # disassemble tcp header
         [self.src_port,
          self.dst_port,
          self.seq,
@@ -165,21 +165,21 @@ class TCP_Packet:
                                     0,  # Reserved byte
                                     socket.IPPROTO_TCP,  # Protocol
                                     len(tcp_header) + len(self.data))
-        pseudo_header = pseudo_header + tcp_header + self.data
 
         # Compute checksum
-        self.check = checksum(pseudo_header)
+        self.check = checksum(pseudo_header + tcp_header + self.data)
 
-        tcp_header = struct.pack('!HHLLBBHHH',
+        # checksum is NOT in network byte order
+        tcp_header = struct.pack('!HHLLBBH',
                                  self.src_port,  # H: 2 Bytes
                                  self.dst_port,  # H
                                  self.seq,  # L: 4 Bytes
                                  self.ack_seq,  # L
                                  offset_res,  # B
                                  flags,  # B
-                                 self.window,  # H
-                                 self.check,  # H
-                                 self.urg_ptr)  # H
+                                 self.window) +\
+                     struct.pack('H', self.check) +\
+                     struct.pack('!H', self.urg_ptr)
 
         return tcp_header + self.data
 
@@ -191,7 +191,8 @@ class TCP_Packet:
               ' Destination IP : ' + socket.inet_ntoa(self.dst_ip) +\
               '\nSequence Number : ' + str(self.seq) +\
               ' Acknowledgement : ' + str(self.ack_seq) +\
-              ' TCP header length : ' + str(self.doff * 4)
+              ' TCP header length : ' + str(self.doff * 4) +\
+              ' Checksum: ' + str(hex(self.check))
 
 
 class TCP_Socket:
@@ -217,7 +218,7 @@ class TCP_Socket:
         self.dst_ip = socket.gethostbyname(dst_addr)
         self.dst_port = dst_port
         self.src_ip = get_localhost_ip()
-        self.src_port = self.get_open_port()
+        self.src_port = get_open_port()
 
         # three way hand shake
         self.seq = randint(0, 65535)
@@ -326,15 +327,9 @@ class TCP_Socket:
         packet.ack_seq = self.ack
         return packet
 
-    def get_open_port(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(('', 0))
-        port = s.getsockname()[1]
-        s.close()
-        return port
-
     def _send(self, src_ip, des_ip, packet):
         print('[DEBUG]Send Packet:')
+        print binascii.hexlify(packet.create())
         packet.print_packet()
 
         self.sock.send(src_ip, des_ip, packet.create())
@@ -352,6 +347,8 @@ class TCP_Socket:
             #print 'recv:'
             #packet.print_packet()
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:
+                print('[DBUG] Recv the packet')
+                packet.print_packet()
                 return packet
         return ''
 

@@ -3,6 +3,7 @@ import struct
 import sys
 
 from random import randint
+import binascii
 from utility import checksum
 
 '''
@@ -127,7 +128,8 @@ class IP_Packet:
     def print_packet(self):
         print('[DEBUG]The IP Packet')
         print 'Source: ' + socket.inet_ntoa(self.src) +\
-              ' Destination: ' + socket.inet_ntoa(self.dst)
+              ' Destination: ' + socket.inet_ntoa(self.dst) +\
+              ' Checksum:' + str(hex(self.check))
 
 
 class IP_Socket:
@@ -145,21 +147,31 @@ class IP_Socket:
         # send via network layer
         self.send_sock.sendto(packet.create(), (self.des, 0))
         print('[DEBUG] Send IP Packet:')
+        print binascii.hexlify(packet.create())
         packet.print_packet()
 
     def recv(self, timeout=0.5):
         packet = IP_Packet('0', '0')
+        total_data = []
         self.recv_sock.setblocking(0)
 
         while True:
-            pkt = self.recv_sock.recv(2048)
+            try:
+                pkt = self.recv_sock.recv(2048)
+            except:
+                continue
             packet.disassemble(pkt)
 
             print('[DEBUG]IP Recv:')
             packet.print_packet()
 
+            if not packet:
+                break
             if packet.proto == socket.IPPROTO_TCP and packet.src == self.des and packet.dst == self.src:
-                    return packet.data
+                total_data.append(packet.data)
+
+        return ''.join(total_data)
+
 
 
 if __name__ == '__main__':
