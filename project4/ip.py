@@ -5,6 +5,7 @@ import sys
 from random import randint
 import binascii
 from utility import checksum
+from ethernet import Ethernet_Socket
 
 '''
 IP Header
@@ -123,6 +124,7 @@ class IP_Packet:
         header = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
 
         if checksum(header) != self.check:
+            print('[DEBUG]IP Checksum:' + self.check)
             sys.exit('IP checksum does not match')
 
     def print_packet(self):
@@ -137,27 +139,28 @@ class IP_Socket:
     def __init__(self, src_ip='', des_ip=''):
         self.src = src_ip
         self.des = des_ip
-        self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
-        self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+        self.sock = Ethernet_Socket()
+        # self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        # self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
     def send(self, src_ip, des_ip, data=''):
         self.src = src_ip
         self.des = des_ip
         packet = IP_Packet(src_ip, des_ip, data)
         # send via network layer
-        self.send_sock.sendto(packet.create(), (self.des, 0))
         print('[DEBUG] Send IP Packet:')
         print binascii.hexlify(packet.create())
         packet.print_packet()
+        self.sock.send(packet.create())
 
     def recv(self, timeout=0.5):
         packet = IP_Packet('0', '0')
         total_data = []
-        self.recv_sock.setblocking(0)
+        #self.recv_sock.setblocking(0)
 
         while True:
             try:
-                pkt = self.recv_sock.recv(2048)
+                pkt = self.sock.recv()
             except:
                 continue
             packet.disassemble(pkt)
@@ -171,7 +174,6 @@ class IP_Socket:
                 total_data.append(packet.data)
 
         return ''.join(total_data)
-
 
 
 if __name__ == '__main__':

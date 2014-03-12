@@ -16,7 +16,7 @@ def get_mac_address(iface='eth0'):
     """Return the MAC address of the localhost"""
     mac = commands.getoutput("ifconfig " + iface + " | grep HWaddr | awk '{ print $5 }'")
     if len(mac) == 17:
-        return mac
+        return mac.replace(':','')
 
 
 def get_localhost_ip(iface='eth0'):
@@ -39,18 +39,25 @@ def get_gateway_ip():
     return gateway_ip
 
 
-def checksum(msg):
-    """Return the checksum"""
-    s = 0
-    # loop taking 2 characters at a time
-    for i in range(0, len(msg), 2):
-        w = ord(msg[i]) + (ord(msg[i + 1]) << 8)
-        s += w
-    s = (s >> 16) + (s & 0xffff)
-    s += (s >> 16)
-    # complement and mask to 4 byte short
-    s = ~s & 0xffff
-    return s
+def checksum(data):  # Form the standard IP-suite checksum
+    pos = len(data)
+    if (pos & 1):  # If odd...
+        pos -= 1
+        sum = ord(data[pos])  # Prime the sum with the odd end byte
+    else:
+        sum = 0
+
+    # Main code: loop to calculate the checksum
+    while pos > 0:
+        pos -= 2
+        sum += (ord(data[pos + 1]) << 8) + ord(data[pos])
+
+    sum = (sum >> 16) + (sum & 0xffff)
+    sum += (sum >> 16)
+
+    result = (~ sum) & 0xffff #Keep lower 16 bits
+    result = result >> 8 | ((result & 0xff) << 8)  # Swap bytes
+    return result
 
 if __name__ == "__main__":
     print 'MAC Address: ' + get_mac_address()

@@ -231,7 +231,7 @@ class TCP_Socket:
         # Receive SYN + ACK
         packet.reset()
         packet = self._recv()
-        print('[DEBUG] Connect recv')
+        print('[DEBUG]Connect recv')
         print repr(packet.data)
         if packet == '':
             sys.exit('Socket Time Out During Connection')
@@ -347,7 +347,7 @@ class TCP_Socket:
             #print 'recv:'
             #packet.print_packet()
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:
-                print('[DBUG] Recv the packet')
+                print('[DEBUG]Recv the packet')
                 packet.print_packet()
                 return packet
         return ''
