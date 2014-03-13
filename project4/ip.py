@@ -159,16 +159,15 @@ class IPSocket(RawSocket):
         packet = IPPacket('0', '0')
 
         while True:
-            try:
-                pkt = self.sock.recv()
-            except:
-                continue
+            packet.reset()
+            pkt = self.sock.recv()
             packet.rebuild(pkt)
 
             print '[DEBUG]IP Receive:'
             packet.debug_print()
 
-        # TODO Finish this method
+            if packet.proto == socket.IPPROTO_TCP and packet.src == self.dst and packet.dst == self.src:
+                return packet.data
 
 
 if __name__ == '__main__':
