@@ -1,11 +1,12 @@
-from ip import IPSocket
 from random import randint
-from utility import Packet, RawSocket, get_localhost_ip, get_open_port, checksum
-import binascii
 import socket
 import struct
 import sys
 import time
+
+from ip import IPSocket
+from utility import get_localhost_ip, get_open_port, checksum
+
 
 '''
 TCP Header
@@ -30,18 +31,15 @@ TCP Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
 
-TIME_OUT = 1
+TIME_OUT = 0.1
 
 
-class TCPPacket(Packet):
-
+class TCPPacket:
     def __init__(self, src_ip, src_port, dst_ip, dst_port=80, data=''):
-        Packet.__init__(self)
-
         self.src_port = src_port  # source port
         self.dst_port = dst_port  # destination port
-        self.seqno = 0  # sequence number
-        self.ackno = 0  # acknowledge number
+        self.seq_no = 0  # sequence number
+        self.ack_no = 0  # acknowledge number
         self.doff = 5  # 4 bit field, size of tcp header, 5 * 4 = 20 bytes
         self.fin = 0
         self.syn = 0
@@ -49,7 +47,7 @@ class TCPPacket(Packet):
         self.psh = 0
         self.ack = 0
         self.urg = 0
-        self.winsize = 4096  # maximum allowed window size
+        self.win_size = 4096  # maximum allowed window size
         self.check = 0
         self.urg_ptr = 0
         self.data = data
@@ -58,11 +56,11 @@ class TCPPacket(Packet):
 
     def reset(self):
         # tcp header fields
-        self.src_port = 0   # source port
+        self.src_port = 0  # source port
         self.dst_port = 0  # destination port
-        self.seqno = 0  # sequence number
-        self.ackno = 0  # acknowledge number
-        self.doff = 5    # 4 bit field, size of tcp header, 5 * 4 = 20 bytes
+        self.seq_no = 0  # sequence number
+        self.ack_no = 0  # acknowledge number
+        self.doff = 5  # 4 bit field, size of tcp header, 5 * 4 = 20 bytes
         # tcp flags
         self.fin = 0
         self.syn = 0
@@ -70,7 +68,7 @@ class TCPPacket(Packet):
         self.psh = 0
         self.ack = 0
         self.urg = 0
-        self.winsize = 4096  # maximum allowed window size
+        self.win_size = 4096  # maximum allowed window size
         self.check = 0
         self.urg_ptr = 0
         self.data = ''
@@ -93,11 +91,11 @@ class TCPPacket(Packet):
         tcp_header = struct.pack('!HHLLBBHHH',
                                  self.src_port,  # H: 2 Bytes
                                  self.dst_port,  # H
-                                 self.seqno,  # L: 4 Bytes
-                                 self.ackno,  # L
+                                 self.seq_no,  # L: 4 Bytes
+                                 self.ack_no,  # L
                                  offset_res,  # B
                                  flags,  # B
-                                 self.winsize,  # H
+                                 self.win_size,  # H
                                  self.check,  # H
                                  self.urg_ptr)  # H
 
@@ -116,11 +114,11 @@ class TCPPacket(Packet):
         tcp_header = struct.pack('!HHLLBBH',
                                  self.src_port,  # H: 2 Bytes
                                  self.dst_port,  # H
-                                 self.seqno,  # L: 4 Bytes
-                                 self.ackno,  # L
+                                 self.seq_no,  # L: 4 Bytes
+                                 self.ack_no,  # L
                                  offset_res,  # B
                                  flags,  # B
-                                 self.winsize) + \
+                                 self.win_size) + \
                      struct.pack('H', self.check) + \
                      struct.pack('!H', self.urg_ptr)
 
@@ -130,13 +128,13 @@ class TCPPacket(Packet):
         # disassemble tcp header
         [self.src_port,
          self.dst_port,
-         self.seqno,
-         self.ackno,
+         self.seq_no,
+         self.ack_no,
          offset_res,
          flags,
-         self.winsize] = struct.unpack('!HHLLBBH', raw_packet[0:16])
-        self.check = struct.unpack('H', raw_packet[16:18])
-        self.urg_ptr = struct.unpack('!H', raw_packet[18:20])
+         self.win_size] = struct.unpack('!HHLLBBH', raw_packet[0:16])
+        [self.check] = struct.unpack('H', raw_packet[16:18])
+        [self.urg_ptr] = struct.unpack('!H', raw_packet[18:20])
 
         self.doff = offset_res >> 4
         # get flags
@@ -155,17 +153,11 @@ class TCPPacket(Packet):
         print '[DEBUG]TCP Packet'
         print 'Source: %s : %d' % (self.src_ip, self.src_port)
         print 'Destination: %s : %d' % (self.dst_ip, self.dst_port)
-        print 'Sequence: %d\tAcknowledgement: %d\nHeader Length: %d\tChecksum: %X' % \
-              (self.seqno, self.ackno, self.doff * 4, self.check)
-
-    def debug_print_hex(self):
-        print binascii.hexlify(self.build())
+        print 'Sequence: %d\tAcknowledgement: %d' % (self.seq_no, self.ack_no)
 
 
-class TCPSocket(RawSocket):
-
+class TCPSocket:
     def __init__(self):
-        RawSocket.__init__(self)
         self.src_ip = '0'
         self.src_port = 0
         self.dst_ip = '0'
@@ -201,9 +193,9 @@ class TCPSocket(RawSocket):
         packet.debug_print()
         if packet == '':
             sys.exit('Socket Time Out During Connection')
-        if packet.ackno == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
-            self.ack = packet.seqno + 1
-            self.seq = packet.ackno
+        if packet.ack_no == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
+            self.ack = packet.seq_no + 1
+            self.seq = packet.ack_no
         else:
             sys.exit('Wrong SYN+ACK Packet')
 
@@ -227,9 +219,9 @@ class TCPSocket(RawSocket):
         packet = self.__recv()
         if packet == '':
             sys.exit('Socket Time Out During Sending TCP Packet')
-        if packet.ackno == (self.seq + len(data)):
-            self.ack = packet.seqno + len(packet.data)
-            self.seq = packet.ackno
+        if packet.ack_no == (self.seq + len(data)):
+            self.ack = packet.seq_no + len(packet.data)
+            self.seq = packet.ack_no
         else:
             sys.exit('Wrong ACK Packet')
 
@@ -241,8 +233,8 @@ class TCPSocket(RawSocket):
                 # Send ACK
                 packet = self.build_sending_packet()
                 # Set ack for previous packet
-                packet.ackno = self.pre_ack
-                packet.seqno = self.pre_seq
+                packet.ack_no = self.pre_ack
+                packet.seq_no = self.pre_seq
                 packet.ack = 1
                 self.__send(packet)
                 # Decrease ack_count by 1 after finishing send ACK
@@ -259,8 +251,8 @@ class TCPSocket(RawSocket):
                 self.pre_seq = self.seq
 
             packet.rebuild(pkt)
-            self.ack = packet.seqno + len(packet.data)
-            self.seq = packet.ackno
+            self.ack = packet.seq_no + len(packet.data)
+            self.seq = packet.ack_no
             total_data.append(packet.data)
             # Increase ack_count by 1 after finishing acknowledge
             self.ack_count += 1
@@ -282,8 +274,8 @@ class TCPSocket(RawSocket):
         if pkt == '':
             sys.exit('Wrong FIN+ACK Packet')
         packet.rebuild(pkt)
-        self.ack = packet.seqno + 1
-        self.seq = packet.ackno
+        self.ack = packet.seq_no + 1
+        self.seq = packet.ack_no
 
         # Send ACK
         packet = self.build_sending_packet()
@@ -292,13 +284,12 @@ class TCPSocket(RawSocket):
 
     def build_sending_packet(self):
         packet = TCPPacket(self.src_ip, self.src_port, self.dst_ip, self.dst_port)
-        packet.seqno = self.seq
-        packet.ackno = self.ack
+        packet.seq_no = self.seq
+        packet.ack_no = self.ack
         return packet
 
     def __send(self, packet):
         print('[DEBUG]Send Packet:')
-        packet.debug_print_hex()
         packet.debug_print()
 
         self.sock.send(packet.build())

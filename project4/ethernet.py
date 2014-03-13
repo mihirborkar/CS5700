@@ -2,8 +2,9 @@ import binascii
 import socket
 import struct
 import sys
-from struct import pack
-from utility import Packet, RawSocket, get_mac_address, get_gateway_ip, get_localhost_ip
+
+from utility import get_mac_address, get_gateway_ip, get_localhost_ip
+
 
 '''
 ARP Header
@@ -30,11 +31,8 @@ ARPOP_REQUEST = 1
 ARPOP_REPLY = 2
 
 
-class EthernetPacket(Packet):
-
+class EthernetPacket:
     def __init__(self, src, dst, proto=0x0800, data=''):
-        Packet.__init__(self)
-
         self.src = src  # 6 Bytes
         self.dst = dst  # 6 Bytes
         self.type = proto  # 2 Bytes
@@ -55,13 +53,11 @@ class EthernetPacket(Packet):
 
     def debug_print(self):
         print('[DEBUG]Ethernet Packet')
-        print 'From: %s\tTo: %s' % (self.src, self.dst)
+        print 'From: %s\tTo: %s\tType: %X' % (self.src, self.dst, self.type)
 
 
-class ARPPacket(Packet):
-
+class ARPPacket:
     def __init__(self, src_mac, src_ip, dst_mac, dst_ip, operation=ARPOP_REQUEST):
-        Packet.__init__(self)
 
         self.htype = 0x0001  # ethernet
         self.ptype = 0x0800  # ip
@@ -74,16 +70,16 @@ class ARPPacket(Packet):
         self.dst_ip = dst_ip
 
     def build(self):
-        arp = pack('!HHBBH6s4s6s4s',
-                   self.htype,
-                   self.ptype,
-                   self.hlen,
-                   self.plen,
-                   self.op,
-                   binascii.unhexlify(self.src_mac),
-                   socket.inet_aton(self.src_ip),
-                   binascii.unhexlify(self.dst_mac),
-                   socket.inet_aton(self.dst_ip))
+        arp = struct.pack('!HHBBH6s4s6s4s',
+                          self.htype,
+                          self.ptype,
+                          self.hlen,
+                          self.plen,
+                          self.op,
+                          binascii.unhexlify(self.src_mac),
+                          socket.inet_aton(self.src_ip),
+                          binascii.unhexlify(self.dst_mac),
+                          socket.inet_aton(self.dst_ip))
         return arp
 
     def rebuild(self, raw_packet):
@@ -111,12 +107,11 @@ class ARPPacket(Packet):
             print '%s @ %s' % (self.src_mac, self.src_ip)
 
 
-class EthernetSocket(RawSocket):
+class EthernetSocket:
     def __init__(self):
-        RawSocket.__init__(self)
+        self.send_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
+        self.send_sock.bind(('eth0', 0))
 
-        self.send_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.SOCK_RAW)
-        self.send_sock.bind(('eth0', socket.SOCK_RAW))
         self.recv_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0800))
         self.recv_sock.setblocking(0)
 
@@ -152,7 +147,7 @@ class EthernetSocket(RawSocket):
 
     def find_mac(self, dst_ip):
         # Socket
-        s_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.SOCK_RAW)
+        s_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
         r_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0806))
         r_sock.settimeout(1)
 
@@ -161,20 +156,21 @@ class EthernetSocket(RawSocket):
         src_ip = get_localhost_ip('eth0')
         arp_req = ARPPacket(self.src_mac, src_ip, '000000000000', dst_ip)
         arp_req.debug_print()
+
         # Ethernet Frame
         packet = EthernetPacket(self.src_mac, 'ffffffffffff', 0x0806, arp_req.build())
         print('[DEBUG]Send Ethernet packet')
         packet.debug_print()
 
         # Send the ethernet frame
-        s_sock.send(packet.build())
+        s_sock.sendto(packet.build(), ('eth0', 0))
 
         arp_rep = ARPPacket('', '', '', '')
         while True:
-            pkt = r_sock.recvfrom(4096)[0]
+            pkt = r_sock.recv(4096)
             packet.rebuild(pkt)
 
-            if packet.dst == self.src_mac and packet.type == 0x0806:
+            if packet.dst == self.src_mac:  # and packet.type == 0x0806:
                 print('[DEBUG]ARP REPLY Ethernet Packet')
                 packet.debug_print()
                 arp_rep.rebuild((packet.data[:28]))
@@ -183,7 +179,6 @@ class EthernetSocket(RawSocket):
                     break
         s_sock.close()
         r_sock.close()
-
         return arp_rep.src_mac
 
 

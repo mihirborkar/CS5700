@@ -21,10 +21,10 @@ class HTTPPacket():
         self.path = get_relative_path(url, self.hostname)
 
     def build_request(self):
-        request="GET " + self.path + \
-         " HTTP/1.1\r\n" + \
-         "Host: " + self.hostname + \
-         "\r\n\r\n"
+        request = "GET " + self.path + \
+                  " HTTP/1.1\r\n" + \
+                  "Host: " + self.hostname + \
+                  "\r\n\r\n"
 
         #print '[DEBUG]: HTTP Request\n' + request
         return request
@@ -62,10 +62,10 @@ class HTTPSocket:
         self.sock.setblocking(0)
         total_data = []
         data = ''
-        begin=time.time()
+        begin = time.time()
         while True:
             #if you got some data, then break after wait sec
-            if total_data and time.time()-begin > timeout:
+            if total_data and time.time() - begin > timeout:
                 break
             #if you got no data at all, wait a little longer
             elif time.time() - begin > timeout * 2:
