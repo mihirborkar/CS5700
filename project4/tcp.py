@@ -1,6 +1,6 @@
-from ip import IP_Socket
+from ip import IPSocket
 from random import randint
-from utility import get_localhost_ip, get_open_port, checksum
+from utility import Packet, RawSocket, get_localhost_ip, get_open_port, checksum
 import binascii
 import socket
 import struct
@@ -32,36 +32,36 @@ TCP Header
 
 TIME_OUT = 1
 
-class TCP_Packet:
+
+class TCPPacket(Packet):
 
     def __init__(self, src_ip, src_port, dst_ip, dst_port=80, data=''):
-        # tcp header fields
-        self.src_port = src_port   # source port
-        self.dst_port = dst_port   # destination port
-        self.seq = 0  # sequence number
-        self.ack_seq = 0  # acknowledge number
-        self.doff = 5    # 4 bit field, size of tcp header, 5 * 4 = 20 bytes
-        #tcp flags
+        Packet.__init__(self)
+
+        self.src_port = src_port  # source port
+        self.dst_port = dst_port  # destination port
+        self.seqno = 0  # sequence number
+        self.ackno = 0  # acknowledge number
+        self.doff = 5  # 4 bit field, size of tcp header, 5 * 4 = 20 bytes
         self.fin = 0
         self.syn = 0
         self.rst = 0
         self.psh = 0
         self.ack = 0
         self.urg = 0
-        self.window = 6000  # maximum allowed window size
+        self.winsize = 4096  # maximum allowed window size
         self.check = 0
         self.urg_ptr = 0
         self.data = data
-
-        self.src_ip = socket.inet_aton(src_ip)
-        self.dst_ip = socket.inet_aton(dst_ip)
+        self.src_ip = src_ip  # source ip address
+        self.dst_ip = dst_ip  # destination ip address
 
     def reset(self):
         # tcp header fields
         self.src_port = 0   # source port
         self.dst_port = 0  # destination port
-        self.seq = 0  # sequence number
-        self.ack_seq = 0  # acknowledge number
+        self.seqno = 0  # sequence number
+        self.ackno = 0  # acknowledge number
         self.doff = 5    # 4 bit field, size of tcp header, 5 * 4 = 20 bytes
         # tcp flags
         self.fin = 0
@@ -70,14 +70,14 @@ class TCP_Packet:
         self.psh = 0
         self.ack = 0
         self.urg = 0
-        self.window = 4096  # maximum allowed window size
+        self.winsize = 4096  # maximum allowed window size
         self.check = 0
         self.urg_ptr = 0
         self.data = ''
-        self.src_ip = socket.inet_aton('0')
-        self.dst_ip = socket.inet_aton('0')
+        self.src_ip = '0'
+        self.dst_ip = '0'
 
-    def create(self):
+    def build(self):
         # TCP data offset
         offset_res = (self.doff << 4) + 0
         # TCP flags
@@ -87,22 +87,24 @@ class TCP_Packet:
                 (self.psh << 3) + \
                 (self.ack << 4) + \
                 (self.urg << 5)
+        src_ip = socket.inet_aton(self.src_ip)
+        dst_ip = socket.inet_aton(self.dst_ip)
 
         tcp_header = struct.pack('!HHLLBBHHH',
                                  self.src_port,  # H: 2 Bytes
                                  self.dst_port,  # H
-                                 self.seq,  # L: 4 Bytes
-                                 self.ack_seq,  # L
+                                 self.seqno,  # L: 4 Bytes
+                                 self.ackno,  # L
                                  offset_res,  # B
                                  flags,  # B
-                                 self.window,  # H
+                                 self.winsize,  # H
                                  self.check,  # H
                                  self.urg_ptr)  # H
 
         # build a pseudo header for computing checksum
         pseudo_header = struct.pack('!4s4sBBH',
-                                    self.src_ip,
-                                    self.dst_ip,
+                                    src_ip,
+                                    dst_ip,
                                     0,  # Reserved byte
                                     socket.IPPROTO_TCP,  # Protocol
                                     len(tcp_header) + len(self.data))
@@ -114,27 +116,27 @@ class TCP_Packet:
         tcp_header = struct.pack('!HHLLBBH',
                                  self.src_port,  # H: 2 Bytes
                                  self.dst_port,  # H
-                                 self.seq,  # L: 4 Bytes
-                                 self.ack_seq,  # L
+                                 self.seqno,  # L: 4 Bytes
+                                 self.ackno,  # L
                                  offset_res,  # B
                                  flags,  # B
-                                 self.window) +\
-                     struct.pack('H', self.check) +\
+                                 self.winsize) + \
+                     struct.pack('H', self.check) + \
                      struct.pack('!H', self.urg_ptr)
 
         return tcp_header + self.data
 
-    def disassemble(self, raw_packet):
+    def rebuild(self, raw_packet):
         # disassemble tcp header
         [self.src_port,
          self.dst_port,
-         self.seq,
-         self.ack,
+         self.seqno,
+         self.ackno,
          offset_res,
          flags,
-         self.window,
-         self.check,
-         self.urg_ptr] = struct.unpack('!HHLLBBHHH', raw_packet[0:20])
+         self.winsize] = struct.unpack('!HHLLBBH', raw_packet[0:16])
+        self.check = struct.unpack('H', raw_packet[16:18])
+        self.urg_ptr = struct.unpack('!H', raw_packet[18:20])
 
         self.doff = offset_res >> 4
         # get flags
@@ -147,78 +149,42 @@ class TCP_Packet:
 
         self.data = raw_packet[4 * self.doff:]
 
-        tcp_header = struct.pack('!HHLLBBHHH',
-                                 self.src_port,  # H: 2 Bytes
-                                 self.dst_port,  # H
-                                 self.seq,  # L: 4 Bytes
-                                 self.ack_seq,  # L
-                                 offset_res,  # B
-                                 flags,  # B
-                                 self.window,  # H
-                                 self.check,  # H
-                                 self.urg_ptr)  # H
+        # TODO: Check checksum
 
-        # build a pseudo header for computing checksum
-        pseudo_header = struct.pack('!4s4sBBH',
-                                    self.src_ip,
-                                    self.dst_ip,
-                                    0,  # Reserved byte
-                                    socket.IPPROTO_TCP,  # Protocol
-                                    len(tcp_header) + len(self.data))
+    def debug_print(self):
+        print '[DEBUG]TCP Packet'
+        print 'Source: %s : %s' % (self.src_ip, str(self.src_port))
+        print 'Destination: %s : %s' % (self.dst_ip. str(self.dst_port))
+        print 'Sequence: %d\tAcknowledgement: %d\nHeader Length: %d\tChecksum: %X' % \
+              (self.seqno, self.ackno, self.doff * 4, self.check)
 
-        # Compute checksum
-        self.check = checksum(pseudo_header + tcp_header + self.data)
-
-        # checksum is NOT in network byte order
-        tcp_header = struct.pack('!HHLLBBH',
-                                 self.src_port,  # H: 2 Bytes
-                                 self.dst_port,  # H
-                                 self.seq,  # L: 4 Bytes
-                                 self.ack_seq,  # L
-                                 offset_res,  # B
-                                 flags,  # B
-                                 self.window) +\
-                     struct.pack('H', self.check) +\
-                     struct.pack('!H', self.urg_ptr)
-
-        return tcp_header + self.data
-
-    def print_packet(self):
-        print('[DEBUG]The TCP Packet')
-        print 'Source Port : ' + str(self.src_port) +\
-              ' Source IP : ' + socket.inet_ntoa(self.src_ip) +\
-              '\nDestination Port : ' + str(self.dst_port) +\
-              ' Destination IP : ' + socket.inet_ntoa(self.dst_ip) +\
-              '\nSequence Number : ' + str(self.seq) +\
-              ' Acknowledgement : ' + str(self.ack_seq) +\
-              ' TCP header length : ' + str(self.doff * 4) +\
-              ' Checksum: ' + str(hex(self.check))
+    def debug_print_hex(self):
+        print binascii.hexlify(self.build())
 
 
-class TCP_Socket:
+class TCPSocket(RawSocket):
 
     def __init__(self):
-        self.src_ip = ''
+        RawSocket.__init__(self)
+        self.src_ip = '0'
         self.src_port = 0
-        self.dst_ip = ''
+        self.dst_ip = '0'
         self.dst_port = 0
         self.seq = 0
         self.ack = 0
-        self.sock = IP_Socket()
-
-        self.my_stamp = 0
-        self.echo_stamp = 0
-        self.last_time = 0
+        self.sock = IPSocket(self.src_ip, self.dst_ip)
 
         self.ack_count = 0
         self.pre_ack = -1
         self.pre_seq = -1
 
-    def connect(self, dst_addr, dst_port=80):
-        self.dst_ip = socket.gethostbyname(dst_addr)
+    def connect(self, dst_host, dst_port=80):
+        self.dst_ip = socket.gethostbyname(dst_host)
         self.dst_port = dst_port
         self.src_ip = get_localhost_ip()
         self.src_port = get_open_port()
+
+        self.sock = IPSocket(self.src_ip, self.dst_ip)
 
         # three way hand shake
         self.seq = randint(0, 65535)
@@ -226,25 +192,25 @@ class TCP_Socket:
         packet.syn = 1
 
         # Send SYN
-        self._send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
         # Receive SYN + ACK
         packet.reset()
-        packet = self._recv()
-        print('[DEBUG]Connect recv')
-        print repr(packet.data)
+        packet = self.__recv()
+        print '[DEBUG]Connection Receive'
+        packet.debug_print()
         if packet == '':
             sys.exit('Socket Time Out During Connection')
-        if packet.ack_seq == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
-            self.ack = packet.seq + 1
-            self.seq = packet.ack_seq
+        if packet.ackno == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
+            self.ack = packet.seqno + 1
+            self.seq = packet.ackno
         else:
             sys.exit('Wrong SYN+ACK Packet')
 
         # Send ACK
         packet = self.build_sending_packet()
         packet.ack = 1
-        self._send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
     def send(self, data):
         # Build the packet
@@ -253,51 +219,53 @@ class TCP_Socket:
         packet.psh = 1
         packet.data = data
 
-        self._send(self.src_ip, self.dst_ip, packet)
+        # Send the packet
+        self.__send(packet)
 
         # Receive ACK
         packet.reset()
-        packet = self._recv()
+        packet = self.__recv()
         if packet == '':
             sys.exit('Socket Time Out During Sending TCP Packet')
-        if packet.ack_seq == (self.seq + len(data)):
-            self.ack = packet.seq + len(packet.data)
-            self.seq = packet.ack_seq
+        if packet.ackno == (self.seq + len(data)):
+            self.ack = packet.seqno + len(packet.data)
+            self.seq = packet.ackno
         else:
             sys.exit('Wrong ACK Packet')
 
     def recv(self):
-        tcp_data = ''
-        packet = TCP_Packet('0', 0, '0')
+        total_data = []
+        packet = TCPPacket('0', 0, '0')
         while True:
             if self.ack_count > 1:
                 # Send ACK
                 packet = self.build_sending_packet()
-                # set ack for previous packet
-                packet.ack_seq = self.pre_ack
-                packet.seq = self.pre_seq
+                # Set ack for previous packet
+                packet.ackno = self.pre_ack
+                packet.seqno = self.pre_seq
                 packet.ack = 1
-                self._send(self.src_ip, self.dst_ip, packet)
+                self.__send(packet)
                 # Decrease ack_count by 1 after finishing send ACK
                 self.ack_count -= 1
 
             # Receive
             packet.reset()
-            packet = self._recv()
-            if packet == '':
+            pkt = self.__recv()
+            if pkt == '':
                 break
             # Set previous ack as current ack
             if self.ack_count > 0:
                 self.pre_ack = self.ack
                 self.pre_seq = self.seq
 
-            self.ack = packet.seq + len(packet.data)
-            self.seq = packet.ack_seq
-            tcp_data += packet.data
+            packet.rebuild(pkt)
+            self.ack = packet.seqno + len(packet.data)
+            self.seq = packet.ackno
+            total_data.append(packet.data)
             # Increase ack_count by 1 after finishing acknowledge
             self.ack_count += 1
 
-        return tcp_data
+        return ''.join(total_data)
 
     def close(self):
         # Send FIN + ACK
@@ -306,53 +274,53 @@ class TCP_Socket:
         if self.ack_count > 0:
             packet.ack = 1
         packet.psh = 1
-        self._send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
         # Receive FIN + ACK
         packet.reset()
-        packet = self._recv()
-        if packet == '':
+        pkt = self.__recv()
+        if pkt == '':
             sys.exit('Wrong FIN+ACK Packet')
-        self.ack = packet.seq + 1
-        self.seq = packet.ack_seq
+        packet.rebuild(pkt)
+        self.ack = packet.seqno + 1
+        self.seq = packet.ackno
 
         # Send ACK
         packet = self.build_sending_packet()
         packet.ack = 1
-        self._send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
     def build_sending_packet(self):
-        packet = TCP_Packet(self.src_ip, self.src_port, self.dst_ip, self.dst_port)
-        packet.seq = self.seq
-        packet.ack_seq = self.ack
+        packet = TCPPacket(self.src_ip, self.src_port, self.dst_ip, self.dst_port)
+        packet.seqno = self.seq
+        packet.ackno = self.ack
         return packet
 
-    def _send(self, src_ip, des_ip, packet):
+    def __send(self, packet):
         print('[DEBUG]Send Packet:')
-        print binascii.hexlify(packet.create())
-        packet.print_packet()
+        packet.debug_print_hex()
+        packet.debug_print()
 
-        self.sock.send(src_ip, des_ip, packet.create())
+        self.sock.send(packet.build())
 
-    def _recv(self):
-        packet = TCP_Packet('0', 0, '0')
+    def __recv(self):
+        packet = TCPPacket('0', 0, '0')
         start_time = time.time()
+
         while (time.time() - start_time) < TIME_OUT:
             packet.reset()
-            pkt = self.sock.recv()
 
-            packet.src_ip = self.dst_ip
-            packet.dst_ip = self.src_ip
-            packet.disassemble(pkt)
-            #print 'recv:'
-            #packet.print_packet()
+            # Receive
+            pkt = self.sock.recv()
+            packet.rebuild(pkt)
+
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:
-                print('[DEBUG]Recv the packet')
-                packet.print_packet()
+                # print '[DEBUG]Receive:'
+                # packet.debug_print()
                 return packet
         return ''
 
 
 if __name__ == "__main__":
-    sock = TCP_Socket()
+    sock = TCPSocket()
     sock.connect('cs5700.ccs.neu.edu', 80)

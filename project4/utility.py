@@ -4,7 +4,35 @@ import socket
 import struct
 
 
+class Packet:
+
+    def __init__(self):
+        pass
+
+    def build(self):
+        pass
+
+    def rebuild(self, raw_packet):
+        pass
+
+    def debug_print(self):
+        pass
+
+
+class RawSocket:
+
+    def __init__(self):
+        pass
+
+    def send(self, data):
+        pass
+
+    def recv(self):
+        pass
+
+
 def get_open_port():
+    """Get a free port for TCP"""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 0))
     port = s.getsockname()[1]
@@ -16,7 +44,7 @@ def get_mac_address(iface='eth0'):
     """Return the MAC address of the localhost"""
     mac = commands.getoutput("ifconfig " + iface + " | grep HWaddr | awk '{ print $5 }'")
     if len(mac) == 17:
-        return mac.replace(':','')
+        return mac.replace(':', '')
 
 
 def get_localhost_ip(iface='eth0'):
@@ -39,23 +67,24 @@ def get_gateway_ip():
     return gateway_ip
 
 
-def checksum(data):  # Form the standard IP-suite checksum
+def checksum(data):
+    """Compute the checksum"""
     pos = len(data)
-    if (pos & 1):  # If odd...
+    if pos & 1:  # If odd...
         pos -= 1
-        sum = ord(data[pos])  # Prime the sum with the odd end byte
+        s = ord(data[pos])  # Prime the sum with the odd end byte
     else:
-        sum = 0
+        s = 0
 
     # Main code: loop to calculate the checksum
     while pos > 0:
         pos -= 2
-        sum += (ord(data[pos + 1]) << 8) + ord(data[pos])
+        s += (ord(data[pos + 1]) << 8) + ord(data[pos])
 
-    sum = (sum >> 16) + (sum & 0xffff)
-    sum += (sum >> 16)
+    s = (s >> 16) + (s & 0xffff)
+    s += (s >> 16)
 
-    result = (~ sum) & 0xffff #Keep lower 16 bits
+    result = (~ s) & 0xffff  # Keep lower 16 bits
     result = result >> 8 | ((result & 0xff) << 8)  # Swap bytes
     return result
 
