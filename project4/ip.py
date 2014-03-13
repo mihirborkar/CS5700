@@ -1,6 +1,6 @@
 from random import randint
 from utility import Packet, RawSocket, checksum
-from ethernet import Ethernet_Socket
+from ethernet import EthernetSocket
 
 import binascii
 import socket
@@ -144,7 +144,7 @@ class IPSocket(RawSocket):
         RawSocket.__init__(self)
         self.src = src_ip
         self.dst = dst_ip
-        self.sock = Ethernet_Socket()
+        self.sock = EthernetSocket()
 
     def send(self, data=''):
         # Build the packet

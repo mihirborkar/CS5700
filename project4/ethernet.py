@@ -39,21 +39,21 @@ class EthernetPacket(Packet):
         self.dst = dst  # 6 Bytes
         self.type = proto  # 2 Bytes
         self.data = data
-        
+
     def build(self):
         header = struct.pack('!6s6sH',
                              binascii.unhexlify(self.dst),
                              binascii.unhexlify(self.src),
                              self.type)
         return header + self.data
-    
+
     def rebuild(self, raw_packet):
         [dst, src, self.type] = struct.unpack('!6s6sH', raw_packet[:14])
         self.dst = binascii.hexlify(dst)
         self.src = binascii.hexlify(src)
         self.data = raw_packet[14:]
-        
-    def print_packet(self):
+
+    def debug_print(self):
         print('[DEBUG]Ethernet Packet')
         print 'From: %s\tTo: %s' % (self.src, self.dst)
 
@@ -119,10 +119,11 @@ class EthernetSocket(RawSocket):
         self.send_sock.bind(('eth0', socket.SOCK_RAW))
         self.recv_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0800))
         self.recv_sock.setblocking(0)
+
         self.src_mac = ''
         self.dst_mac = ''
         self.gateway_mac = ''
-        
+
     def send(self, data=''):
         if self.gateway_mac == '':
             gateway_ip = get_gateway_ip()
@@ -136,17 +137,19 @@ class EthernetSocket(RawSocket):
         self.dst_mac = self.gateway_mac
         packet = EthernetPacket(self.src_mac, self.gateway_mac, data=data)
 
+        print '[DEBUG]Send Ethernet Packet'
+        packet.debug_print()
         self.send_sock.send(packet.build())
 
     def recv(self):
         packet = EthernetPacket('', '')
 
         while True:
-            pkt = self.recv_sock.recvfrom(4096)[0]
+            pkt = self.recv_sock.recv(4096)
             packet.rebuild(pkt)
             if packet.dst == self.src_mac:  # and packet.src == self.dst_mac:
                 return packet.data
-        
+
     def find_mac(self, dst_ip):
         # Socket
         s_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.SOCK_RAW)
@@ -159,13 +162,12 @@ class EthernetSocket(RawSocket):
         arp_req = ARPPacket(self.src_mac, src_ip, '000000000000', dst_ip)
         arp_req.debug_print()
         # Ethernet Frame
-        packet = EthernetPacket(self.src_mac, 'ffffffffffff', 0x0806)
-        packet.data = arp_req.build()
-
+        packet = EthernetPacket(self.src_mac, 'ffffffffffff', 0x0806, arp_req.build())
         print('[DEBUG]Send Ethernet packet')
         packet.debug_print()
+
         # Send the ethernet frame
-        s_sock.sendto(packet.build(), ('eth0', 0))
+        s_sock.send(packet.build())
 
         arp_rep = ARPPacket('', '', '', '')
         while True:
@@ -174,7 +176,7 @@ class EthernetSocket(RawSocket):
 
             if packet.dst == self.src_mac and packet.type == 0x0806:
                 print('[DEBUG]ARP REPLY Ethernet Packet')
-                packet.print_packet()
+                packet.debug_print()
                 arp_rep.rebuild((packet.data[:28]))
                 arp_rep.debug_print()
                 if arp_rep.src_ip == dst_ip and arp_rep.dst_ip == src_ip:
@@ -183,7 +185,7 @@ class EthernetSocket(RawSocket):
         r_sock.close()
 
         return arp_rep.src_mac
-        
-        
+
+
 if __name__ == '__main__':
     pass

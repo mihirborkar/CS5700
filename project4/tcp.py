@@ -153,8 +153,8 @@ class TCPPacket(Packet):
 
     def debug_print(self):
         print '[DEBUG]TCP Packet'
-        print 'Source: %s : %s' % (self.src_ip, str(self.src_port))
-        print 'Destination: %s : %s' % (self.dst_ip. str(self.dst_port))
+        print 'Source: %s : %d' % (self.src_ip, self.src_port)
+        print 'Destination: %s : %d' % (self.dst_ip, self.dst_port)
         print 'Sequence: %d\tAcknowledgement: %d\nHeader Length: %d\tChecksum: %X' % \
               (self.seqno, self.ackno, self.doff * 4, self.check)
 
