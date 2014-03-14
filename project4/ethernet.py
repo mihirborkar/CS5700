@@ -33,22 +33,26 @@ ARPOP_REPLY = 2
 
 class EthernetPacket:
     def __init__(self):
-        self.dst = ''  # as this form: '002522db8cb6'
+        self.dst = ''
         self.src = ''
-        self.type = 0
+        self.type = 0x800
         self.data = ''
 
     def build(self, proto=0x800):
-        dst = binascii.unhexlify(self.dst)
-        src = binascii.unhexlify(self.src)
+        self.type = proto
 
-        return struct.pack('!6s6sH', dst, src, proto) + self.data
+        frame = struct.pack('!6s6sH',
+                            binascii.unhexlify(self.dst),
+                            binascii.unhexlify(self.src),
+                            self.type) + self.data
 
-    def rebuild(self, pkt):
-        [self.dst, self.src, self.type] = struct.unpack('!6s6sH', pkt[:14])
-        self.data = pkt[14:]
-        self.src = binascii.hexlify(self.src)
-        self.dst = binascii.hexlify(self.dst)
+        return frame
+
+    def rebuild(self, raw_packet):
+        [dst, src, self.type] = struct.unpack('!6s6sH', raw_packet[:14])
+        self.data = raw_packet[14:]
+        self.src = binascii.hexlify(src)
+        self.dst = binascii.hexlify(dst)
 
     def debug_print(self):
         print('[DEBUG]Ethernet Packet')
@@ -57,34 +61,29 @@ class EthernetPacket:
 
 class ARPPacket:
     def __init__(self):
-        self.htype = 1  # Ethernet
-        self.ptype = 0x800  # IP
-        self.hlen = 6  # len(mac address)
-        self.plen = 4  # len(ip address)
+        self.htype = 1  # ethernet
+        self.ptype = 0x800  # ip arp resolution
+        self.hlen = 6  # ethernet mac address len
+        self.plen = 4  # ip address len
         self.op = 0  # 1 for request, 2 for reply
-        self.src_mac = ''
+        self.src_mac = ''  # has to be form of '002522db8cb6'
         self.src_ip = ''
         self.dst_mac = ''
         self.dst_ip = ''
 
     def build(self, op=ARPOP_REQUEST):
         self.op = op
-        src_mac = binascii.unhexlify(self.src_mac)
-        dst_mac = binascii.unhexlify(self.dst_mac)
-
-        src_ip = socket.inet_aton(self.src_ip)
-        dst_ip = socket.inet_aton(self.dst_ip)
-
-        return struct.pack('!HHBBH6s4s6s4s',
-                           self.htype,
-                           self.ptype,
-                           self.hlen,
-                           self.plen,
-                           self.op,
-                           src_mac,
-                           src_ip,
-                           dst_mac,
-                           dst_ip)
+        frame = struct.pack('!HHBBH6s4s6s4s',
+                            self.htype,
+                            self.ptype,
+                            self.hlen,
+                            self.plen,
+                            self.op,
+                            binascii.unhexlify(self.src_mac),
+                            socket.inet_aton(self.src_ip),
+                            binascii.unhexlify(self.dst_mac),
+                            socket.inet_aton(self.dst_ip))
+        return frame
 
     def rebuild(self, raw_packet):
         [self.htype,
@@ -92,16 +91,16 @@ class ARPPacket:
          self.hlen,
          self.plen,
          self.op,
-         h_smac,
-         h_sip,
-         h_dmac,
-         h_dip] = struct.unpack('!HHBBH6s4s6s4s', raw_packet)
+         src_mac,
+         src_ip,
+         dst_mac,
+         dst_ip] = struct.unpack('!HHBBH6s4s6s4s', raw_packet)
 
-        self.src_mac = binascii.hexlify(h_smac)
-        self.src_ip = socket.inet_ntoa(h_sip)
+        self.src_mac = binascii.hexlify(src_mac)
+        self.src_ip = socket.inet_ntoa(src_ip)
 
-        self.dst_mac = binascii.hexlify(h_dmac)
-        self.dst_ip = socket.inet_ntoa(h_dip)
+        self.dst_mac = binascii.hexlify(dst_mac)
+        self.dst_ip = socket.inet_ntoa(dst_ip)
 
     def debug_print(self):
         if self.op == ARPOP_REQUEST:
@@ -114,9 +113,8 @@ class ARPPacket:
 
 class EthernetSocket:
     def __init__(self):
-        self.src_mac = ''  # get self eth0 ip address
+        self.src_mac = ''
         self.dst_mac = ''
-
         self.gateway_mac = ''
 
         self.send_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
@@ -141,9 +139,9 @@ class EthernetSocket:
 
         packet.data = data
 
-        self.send_sock.send(packet.build())
         print '[DEBUG]Send Ethernet Packet'
         packet.debug_print()
+        self.send_sock.send(packet.build())
 
     def recv(self):
         packet = EthernetPacket()
@@ -151,8 +149,9 @@ class EthernetSocket:
         while True:
             pkt = self.recv_sock.recvfrom(4096)[0]
             packet.rebuild(pkt)
-            if packet.dst == self.src_mac:  # and packet.src_mac == self.des_mac:
+            if packet.dst == self.src_mac:  # and packet.src_mac == self.dst_mac:
                 return packet.data
+
 
     def find_mac(self, dst_ip):
 
@@ -172,7 +171,7 @@ class EthernetSocket:
         packet = EthernetPacket()
         packet.dst = 'ffffffffffff'
         packet.src = self.src_mac
-        packet.data = arp_req.build(1)
+        packet.data = arp_req.build(ARPOP_REQUEST)
 
         print('[DEBUG]Send Ethernet packet')
         packet.debug_print()

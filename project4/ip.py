@@ -1,7 +1,7 @@
+from random import randint
 import socket
 import struct
 import sys
-from random import randint
 
 from ethernet import EthernetSocket
 from utility import checksum
@@ -28,7 +28,7 @@ IP Header
 
 
 class IPPacket:
-    def __init__(self, src='', des='', data=''):
+    def __init__(self, src='', dst='', data=''):
         self.ver = 4
         self.ihl = 5
         self.tos = 0
@@ -41,7 +41,7 @@ class IPPacket:
         self.proto = socket.IPPROTO_TCP
         self.check = 0
         self.src = src
-        self.dst = des
+        self.dst = dst
         self.data = data
 
     def reset(self):
@@ -61,40 +61,41 @@ class IPPacket:
         self.data = ''
 
     def build(self):
-        # Set fields
         self.id = randint(0, 65535)
         self.tot_len = self.ihl * 4 + len(self.data)
+        src_ip = socket.inet_aton(self.src)
+        dst_ip = socket.inet_aton(self.dst)
 
-        # Assemble the header without the checksum
-        header = struct.pack('!BBHHHBB',
-                             (self.ver << 4) + self.ihl,  # B: unsigned char, 1 Byte
-                             self.tos,  # B
-                             self.tot_len,  # H: unsigned short, 2 Bytes
-                             self.id,  # H
-                             (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset,  # H
-                             self.ttl,  # B
-                             self.proto) + \
-                 struct.pack('H', self.check) + \
-                 struct.pack('!4s4s', socket.inet_aton(self.src),  # 4s: 4 char[], 4 Bytes
-                             socket.inet_aton(self.dst))  # 4s
+        # assemble header without checksum
+        ip_header = struct.pack('!BBHHHBBH4s4s',
+                                (self.ver << 4) + self.ihl,
+                                self.tos,
+                                self.tot_len,
+                                self.id,
+                                (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset,
+                                self.ttl,
+                                self.proto,
+                                self.check,
+                                src_ip,
+                                dst_ip)
 
-        # Compute checksum
-        self.check = checksum(header)
+        self.check = checksum(ip_header)
 
-        # Reassemble the header with checksum
-        header = struct.pack('!BBHHHBB',
-                             (self.ver << 4) + self.ihl,  # B: unsigned char, 1 Byte
-                             self.tos,  # B
-                             self.tot_len,  # H: unsigned short, 2 Bytes
-                             self.id,  # H
-                             (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset,  # H
-                             self.ttl,  # B
-                             self.proto) + \
-                 struct.pack('H', self.check) + \
-                 struct.pack('!4s4s', socket.inet_aton(self.src),  # 4s: 4 char[], 4 Bytes
-                             socket.inet_aton(self.dst))  # 4s
+        # reassemble header with checksum
+        ip_header_new = struct.pack('!BBHHHBB',
+                                    (self.ver << 4) + self.ihl,
+                                    self.tos,
+                                    self.tot_len,
+                                    self.id,
+                                    (((self.flag_df << 1) + self.flag_mf) << 13) + self.offset,
+                                    self.ttl,
+                                    self.proto) + \
+                        struct.pack('H', self.check) + \
+                        struct.pack('!4s4s', src_ip, dst_ip)
 
-        return header + self.data
+        packet = ip_header_new + self.data
+
+        return packet
 
     def rebuild(self, raw_packet):
         [ver_ihl,
@@ -107,55 +108,57 @@ class IPPacket:
         [self.check] = struct.unpack('H', raw_packet[10:12])
         [src_ip, dst_ip] = struct.unpack('!4s4s', raw_packet[12:20])
 
-        self.src = socket.inet_ntoa(src_ip)
-        self.dst = socket.inet_ntoa(dst_ip)
-
         self.ver = (ver_ihl & 0xf0) >> 4
         self.ihl = ver_ihl & 0x0f
+
         self.flag_df = (flag_offset & 0x40) >> 14
         self.flag_mf = (flag_offset & 0x20) >> 13
         self.offset = flag_offset & 0x1f
 
-        self.data = raw_packet[4 * self.ihl:self.tot_len]
+        self.src = socket.inet_ntoa(src_ip)
+        self.dst = socket.inet_ntoa(dst_ip)
 
-        # Check the checksum
-        header = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
-        if checksum(header) == self.check:
-            sys.exit('IP checksum does not match.')
+        self.data = raw_packet[self.ihl * 4:self.tot_len]
+
+        header_wo_chksum = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
+        new_chksum = checksum(header_wo_chksum)
+
+        if new_chksum != self.check:
+            sys.exit('IP checksum does not match')
 
     def debug_print(self):
         print '[DEBUG]IP Packet'
-        print 'Source: %s\tDestination: %s\tChecksum: %X' % (self.src, self.dst, self.check)
+        print 'Source: %s\tDestination: %s' % (self.src, self.dst)
 
 
 class IPSocket:
-    def __init__(self, src='', dst=''):
-        self.src = src
-        self.dst = dst
+    def __init__(self, src_ip='', dst_ip=''):
+        self.src = src_ip
+        self.dst = dst_ip
 
-        # self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
-        # self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
-        # self.recv_sock.setblocking(0)
+        #self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        #self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+        #self.recv_sock.setblocking(0)
 
         self.s = EthernetSocket()
 
-    def send(self, src_ip, dst_ip, data_):
+    def send(self, src_ip, dst_ip, data):
         self.src = src_ip
         self.dst = dst_ip
-        packet = IPPacket(src_ip, dst_ip, data_)
-        # self.send_sock.sendto(packet.build(), (self.des, 0))
-        self.s.send(packet.build())
+        packet = IPPacket(src_ip, dst_ip, data)
+        #self.send_s.sendto(packet.build(), (self.des, 0))
         print '[DEBUG]Send IP Packet:'
         packet.debug_print()
+        self.s.send(packet.build())
 
     def recv(self):
         packet = IPPacket()
-        while 1:
+        while True:
             packet.reset()
-            #pkt = self.recv_sock.recvfrom(4096)[0]
-
+            #pkt = self.recv_sock.recvfrom(65535)[]
             pkt = self.s.recv()
             packet.rebuild(pkt)
+
             print '[DEBUG]IP Receive:'
             packet.debug_print()
 

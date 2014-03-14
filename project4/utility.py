@@ -52,7 +52,7 @@ def checksum(msg):
     s = (s >> 16) + (s & 0xffff)
     s += s >> 16
 
-    #complement and mask to 4 byte short
+    # complement and mask to 4 byte short
     s = ~s & 0xffff
 
     return s
