@@ -1,8 +1,9 @@
 import socket
 import struct
 import sys
-from ethernet import EthernetSocket
 from random import randint
+
+from ethernet import EthernetSocket
 from utility import checksum
 
 
@@ -27,37 +28,36 @@ IP Header
 
 
 class IPPacket:
-    def __init__(self, src_ip, dst_ip, data=''):
-        # ip header fields
-        self.ver = 4  # Version
-        self.ihl = 5  # IHL
-        self.tos = 0  # Type
-        self.tot_len = 20  # Total length
-        self.id = 0  # ID
-        self.flag_df = 1  # 1 bit, Do Not Fragment
-        self.flag_mf = 0  # 1 bit, More Fragments
+    def __init__(self, src='', des='', data=''):
+        self.ver = 4
+        self.ihl = 5
+        self.tos = 0
+        self.tot_len = 20
+        self.id = 0
+        self.flag_df = 1
+        self.flag_mf = 0
         self.offset = 0
-        self.ttl = 255  # Time to live
-        self.proto = socket.IPPROTO_TCP  # protocol
-        self.check = 0  # checksum
-        self.src = src_ip
-        self.dst = dst_ip
+        self.ttl = 255
+        self.proto = socket.IPPROTO_TCP
+        self.check = 0
+        self.src = src
+        self.dst = des
         self.data = data
 
     def reset(self):
-        self.ver = 4  # Version
-        self.ihl = 5  # IHL
-        self.tos = 0  # Type
-        self.tot_len = 20  # Total length
-        self.id = 0  # ID
-        self.flag_df = 1  # 1 bit, Do Not Fragment
-        self.flag_mf = 0  # 1 bit, More Fragments
+        self.ver = 4
+        self.ihl = 5
+        self.tos = 0
+        self.tot_len = 20
+        self.id = 0
+        self.flag_df = 1
+        self.flag_mf = 0
         self.offset = 0
-        self.ttl = 255  # Time to live
-        self.proto = socket.IPPROTO_TCP  # protocol
-        self.check = 0  # checksum
-        self.src = '0'
-        self.dst = '0'
+        self.ttl = 255
+        self.proto = socket.IPPROTO_TCP
+        self.check = 0
+        self.src = 0
+        self.dst = 0
         self.data = ''
 
     def build(self):
@@ -129,32 +129,33 @@ class IPPacket:
 
 
 class IPSocket:
-    def __init__(self, src_ip, dst_ip):
-        """
-        Build the socket on Network layer
-            :param src_ip: Source IP Address
-            :param dst_ip: Destination IP Address
-        """
+    def __init__(self, src='', dst=''):
+        self.src = src
+        self.dst = dst
+
+        # self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        # self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+        # self.recv_sock.setblocking(0)
+
+        self.s = EthernetSocket()
+
+    def send(self, src_ip, dst_ip, data_):
         self.src = src_ip
         self.dst = dst_ip
-        self.sock = EthernetSocket()
-
-    def send(self, data=''):
-        # Build the packet
-        packet = IPPacket(self.src, self.dst, data)
+        packet = IPPacket(src_ip, dst_ip, data_)
+        # self.send_sock.sendto(packet.build(), (self.des, 0))
+        self.s.send(packet.build())
         print '[DEBUG]Send IP Packet:'
         packet.debug_print()
-        # Send the packet
-        self.sock.send(packet.build())
 
     def recv(self):
-        packet = IPPacket('0', '0')
-
-        while True:
+        packet = IPPacket()
+        while 1:
             packet.reset()
-            pkt = self.sock.recv()
-            packet.rebuild(pkt)
+            #pkt = self.recv_sock.recvfrom(4096)[0]
 
+            pkt = self.s.recv()
+            packet.rebuild(pkt)
             print '[DEBUG]IP Receive:'
             packet.debug_print()
 
