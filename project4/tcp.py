@@ -77,7 +77,6 @@ class TCPPacket:
         offset_res = (self.doff << 4) + 0
         self.check = 0
 
-        # parse flags field except NS
         flags = self.fin + \
                 (self.syn << 1) + \
                 (self.rst << 2) + \
@@ -86,7 +85,7 @@ class TCPPacket:
                 (self.urg << 5)
 
         # assemble tcp header without checksum
-        tcp_header = struct.pack('!HHIIBBHHH',
+        tcp_header = struct.pack('!HHLLBBHHH',
                                  self.src_port,
                                  self.dst_port,
                                  self.seq_no,
@@ -109,7 +108,7 @@ class TCPPacket:
         self.check = checksum(pseudo_header)
 
         # finally assemble tcp header
-        tcp_header = struct.pack('!HHIIBBH',
+        tcp_header = struct.pack('!HHLLBBH',
                                  self.src_port,
                                  self.dst_port,
                                  self.seq_no,
@@ -130,7 +129,7 @@ class TCPPacket:
          self.ack_no,
          offset_res,
          flags,
-         self.win_size] = struct.unpack('!HHIIBBH', raw_packet[0:16])
+         self.win_size] = struct.unpack('!HHLLBBH', raw_packet[0:16])
         [self.check] = struct.unpack('H', raw_packet[16:18])
         [self.urgent] = struct.unpack('!H', raw_packet[18:20])
 
@@ -172,24 +171,25 @@ class TCPSocket:
         self.pre_seq = -1
 
     def connect(self, dst_host, port=80):
+        # Set field
         self.dst_ip = socket.gethostbyname(dst_host)
         self.dst_port = port
 
         self.src_ip = get_localhost_ip('eth0')
         self.src_port = get_open_port()
 
-        #self.s.src = self.src_ip
-        #self.s.des = self.dst_ip
+        # Update the IPSocket
+        self.sock = IPSocket(self.src_ip, self.dst_ip)
 
-        # three way hand shake begins:
+        # three way hand shake
         self.seq = randint(0, 65535)
         packet = self.build_sending_packet()
         packet.syn = 1
 
-        # send syn
-        self.__send(self.src_ip, self.dst_ip, packet)
+        # Send SYN
+        self.__send(packet)
 
-        # receive syn+ack
+        # Receive SYN+ACK
         packet.reset()
         packet = self.__recv()
         print '[DEBUG]Connection Receive'
@@ -202,10 +202,10 @@ class TCPSocket:
         else:
             sys.exit('Wrong SYN+ACK Packet')
 
-        # send ack
+        # Send ACK
         packet = self.build_sending_packet()
         packet.ack = 1
-        self.__send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
     def send(self, data):
         # Send the packet
@@ -213,9 +213,9 @@ class TCPSocket:
         packet.ack = 1
         packet.psh = 1
         packet.data = data
-        self.__send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
-        # Get ack of the sent packet
+        # Get ACK of the sent packet
         packet.reset()
         packet = self.__recv()
         if packet == '':
@@ -231,43 +231,43 @@ class TCPSocket:
         packet = TCPPacket()
         while True:
             if self.ack_count > 1:
-                #send ack packet
+                # Send ACK packet
                 packet = self.build_sending_packet()
-                #set ack to previous packet
+                # Set ACK for previous packet
                 packet.ack_no = self.pre_ack
                 packet.seq_np = self.pre_seq
                 packet.ack = 1
-                self.__send(self.src_ip, self.dst_ip, packet)
-                # after send ack, decrease ack_count by 1
+                self.__send(packet)
+                # After sending ack, decrease ack_count by 1
                 self.ack_count -= 1
 
-            # recv packet
+            # Receive packet
             packet.reset()
             packet = self.__recv()
             if packet == '':
                 break
-            # first set previous ack# to current ack
+            # Set previous ack# to current ack
             if self.ack_count > 0:
                 self.pre_ack = self.ack
                 self.pre_seq = self.seq
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
             tcp_data += packet.data
-            # add 1 to ack_count, for acknowledge
+            # Increase ack_count by 1, for acknowledge
             self.ack_count += 1
 
         return tcp_data
 
     def close(self):
-        #send fin+ack
+        # Send FIN+ACK
         packet = self.build_sending_packet()
         packet.fin = 1
         if self.ack_count > 0:
             packet.ack = 1
         packet.psh = 1
-        self.__send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
-        # recv fin+ack
+        # Receive FIN+ACK
         packet.reset()
         packet = self.__recv()
         if packet == '':
@@ -278,7 +278,7 @@ class TCPSocket:
         'send ack'
         packet = self.build_sending_packet()
         packet.ack = 1
-        self.__send(self.src_ip, self.dst_ip, packet)
+        self.__send(packet)
 
     def build_sending_packet(self):
         packet = TCPPacket()
@@ -290,10 +290,10 @@ class TCPSocket:
         packet.ack_no = self.ack
         return packet
 
-    def __send(self, src_ip, dst_ip, packet):
+    def __send(self, packet):
         print('[DEBUG]Send Packet:')
         packet.debug_print()
-        self.sock.send(src_ip, dst_ip, packet.build())
+        self.sock.send(packet.build())
 
     def __recv(self):
         packet = TCPPacket()
@@ -305,8 +305,8 @@ class TCPSocket:
             except:
                 continue
             # packet received
-            packet.src_ip = self.dst_ip
-            packet.dst_ip = self.src_ip
+            # packet.src_ip = self.dst_ip
+            # packet.dst_ip = self.src_ip
             packet.rebuild(pkt)
 
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:

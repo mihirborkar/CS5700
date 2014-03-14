@@ -140,23 +140,22 @@ class IPSocket:
         #self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
         #self.recv_sock.setblocking(0)
 
-        self.s = EthernetSocket()
+        self.sock = EthernetSocket()
 
-    def send(self, src_ip, dst_ip, data):
-        self.src = src_ip
-        self.dst = dst_ip
-        packet = IPPacket(src_ip, dst_ip, data)
+    def send(self, data):
+
+        packet = IPPacket(self.src, self.dst, data)
         #self.send_s.sendto(packet.build(), (self.des, 0))
         print '[DEBUG]Send IP Packet:'
         packet.debug_print()
-        self.s.send(packet.build())
+        self.sock.send(packet.build())
 
     def recv(self):
         packet = IPPacket()
         while True:
             packet.reset()
             #pkt = self.recv_sock.recvfrom(65535)[]
-            pkt = self.s.recv()
+            pkt = self.sock.recv()
             packet.rebuild(pkt)
 
             print '[DEBUG]IP Receive:'
