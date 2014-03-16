@@ -1,24 +1,25 @@
 import socket
-import time
 import sys
+
+from tcp import TCPSocket
 
 
 class HTTPPacket():
-    def __init__(self, url):
-        def get_hostname(url):
+    def __init__(self, _url):
+        def get_hostname(my_url):
             # e.g. url: http://cs5700.ccs.neu.edu/fakebook
             # hostname: cs5700.ccs.neu.edu
-            hostname = url.split('/')[2]
-            #print '[DEBUG]: Host name' + hostname
+            hostname = my_url.split('/')[2]
+            #print '[DEBUG]Host name: %s' % hostname
             return hostname
 
-        def get_relative_path(url, hostname):
-            start_position = url.find(hostname) + len(hostname)
+        def get_relative_path(my_url, hostname):
+            start_position = my_url.find(hostname) + len(hostname)
             #print '[DEBUG] Path:' + url[start_position:]
-            return url[start_position:]
+            return my_url[start_position:]
 
-        self.hostname = get_hostname(url)
-        self.path = get_relative_path(url, self.hostname)
+        self.hostname = get_hostname(_url)
+        self.path = get_relative_path(_url, self.hostname)
 
     def build_request(self):
         request = "GET " + self.path + \
@@ -26,76 +27,68 @@ class HTTPPacket():
                   "Host: " + self.hostname + \
                   "\r\n\r\n"
 
-        #print '[DEBUG]: HTTP Request\n' + request
+        #print '[DEBUG]HTTP Request:\n' + request
         return request
 
 
 class HTTPSocket:
-    def __init__(self, url):
-        def get_filename(url):
+    def __init__(self):
+        self.sock = TCPSocket()
+
+    def download(self, _url):
+        def get_filename(my_url):
             # e.g. url: http://cs5700.ccs.neu.edu/fakebook
             # filename: index.html
-            if url.endswith('/'):
-                filename = 'index.html'
+            if my_url.endswith('/'):
+                name = 'index.html'
             else:
-                filename = url.split('/')[-1]
-            #print '[DEBUG]: File name' + filename
-            return filename
+                name = my_url.split('/')[-1]
+                #print '[DEBUG]: File name' + filename
+            return name
 
-        self.packet = HTTPPacket(url)
-        self.filename = get_filename(url)
-        self.sock = socket.create_connection((self.packet.hostname, 80))
+        filename = get_filename(_url)
+        f = open(filename, 'wb+')
+        packet = HTTPPacket(_url)
+        self.send(packet)
+        data = self.recv()
+        f.write(data)
+        f.close()
 
-    def send(self):
+    def send(self, packet):
         try:
-            request = self.packet.build_request()
-            self.sock.sendall(request)
+            request = packet.build_request()
+            self.sock.send(request)
         except socket.error:
             #Send failed
             sys.exit('Send failed')
 
-    def recv(self, timeout=2.0):
+    def recv(self):
         """
         Receive data and write it to a file
         """
-        f = open(self.filename, 'wb+')
-        self.sock.setblocking(0)
-        total_data = []
-        data = ''
-        begin = time.time()
-        while True:
-            #if you got some data, then break after wait sec
-            if total_data and time.time() - begin > timeout:
-                break
-            #if you got no data at all, wait a little longer
-            elif time.time() - begin > timeout * 2:
-                break
-            try:
-                data = self.sock.recv(2048)
-                if data:
-                    if data.startswith('HTTP/1.1'):
-                        pos = data.find('\r\n\r\n') + 4
-                        f.write(data[pos:])
-                    else:
-                        f.write(data)
-                    begin = time.time()
-                else:
-                    time.sleep(0.1)
-            except:
-                pass
-        f.close()
 
-    def get_status(self):
-        # TODO get HTTP status code of response packet
-        pass
+        def parse_header(response):
+            index = response.find('\r\n\r\n') + 4
+            header = response[:index]
+            return header[9:12], index
+
+        data = self.sock.recv()
+        if data.startswith('HTTP/1.1'):
+            status, pos = parse_header(data)
+            if status != 200:
+                sys.exit('The HTTP Response has an  abnormal status code.')
+            pass
+        else:
+            pass
+        return data
 
     def close(self):
         self.sock.close()
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        sys.exit('Illegal Arguments.')
     url = sys.argv[1]
-    sock = HTTPSocket(url)
-    sock.send()
-    sock.recv(0.1)
-    sock.close()
+    sock = HTTPSocket()
+    sock.download(url)

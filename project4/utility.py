@@ -5,7 +5,8 @@ import struct
 
 
 def get_open_port():
-    """Get a free port for TCP"""
+    """Get a free port for TCP
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 0))
     port = s.getsockname()[1]
@@ -14,14 +15,18 @@ def get_open_port():
 
 
 def get_mac_address(iface='eth0'):
-    """Return the MAC address of the localhost"""
+    """Return the MAC address of the localhost
+    :param iface: 
+    """
     mac = commands.getoutput("ifconfig " + iface + " | grep HWaddr | awk '{ print $5 }'")
     if len(mac) == 17:
         return mac.replace(':', '')
 
 
 def get_localhost_ip(iface='eth0'):
-    """Return the IP address of localhost"""
+    """Return the IP address of localhost
+    :param iface:
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     return socket.inet_ntoa(fcntl.ioctl(s.fileno(),
                                         0x8915,  # SIOCGIFADDR
@@ -41,20 +46,18 @@ def get_gateway_ip():
 
 
 def checksum(msg):
-    """checksum functions needed for calculation checksum"""
+    """checksum functions needed for calculation checksum
+    :param msg: 
+    """
     s = 0
-
     # loop taking 2 characters at a time
     for i in range(0, len(msg), 2):
         w = ord(msg[i]) + (ord(msg[i + 1]) << 8)
         s += w
-
     s = (s >> 16) + (s & 0xffff)
     s += s >> 16
-
     # complement and mask to 4 byte short
     s = ~s & 0xffff
-
     return s
 
 

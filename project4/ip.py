@@ -120,10 +120,10 @@ class IPPacket:
 
         self.data = raw_packet[self.ihl * 4:self.tot_len]
 
-        header_wo_chksum = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
-        new_chksum = checksum(header_wo_chksum)
+        # Check the checksum
+        header = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
 
-        if new_chksum != self.check:
+        if checksum(header) != self.check:
             sys.exit('IP checksum does not match')
 
     def debug_print(self):
@@ -145,9 +145,9 @@ class IPSocket:
     def send(self, data):
 
         packet = IPPacket(self.src, self.dst, data)
-        #self.send_s.sendto(packet.build(), (self.des, 0))
         print '[DEBUG]Send IP Packet:'
         packet.debug_print()
+        #self.send_s.sendto(packet.build(), (self.des, 0))
         self.sock.send(packet.build())
 
     def recv(self):

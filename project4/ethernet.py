@@ -39,6 +39,10 @@ class EthernetPacket:
         self.data = data
 
     def build(self):
+        """
+        Build the ethernet frame in binary format
+        :return:
+        """
         frame = struct.pack('!6s6sH',
                             binascii.unhexlify(self.dst),
                             binascii.unhexlify(self.src),
@@ -47,24 +51,31 @@ class EthernetPacket:
         return frame
 
     def rebuild(self, raw_packet):
+        """
+        Rebuild the ethernet frame
+        :param raw_packet:
+        """
         [dst, src, self.type] = struct.unpack('!6s6sH', raw_packet[:14])
         self.data = raw_packet[14:]
         self.src = binascii.hexlify(src)
         self.dst = binascii.hexlify(dst)
 
     def debug_print(self):
+        """
+        Print information about the object of EthernetPacket for debugging
+        """
         print('[DEBUG]Ethernet Packet')
         print 'From: %s\tTo: %s\tType: %X' % (self.src, self.dst, self.type)
 
 
 class ARPPacket:
     def __init__(self):
-        self.htype = 1  # ethernet
-        self.ptype = 0x800  # ip arp resolution
-        self.hlen = 6  # ethernet mac address len
-        self.plen = 4  # ip address len
+        self.htype = 0x0001  # ethernet
+        self.ptype = 0x0800  # ip arp resolution
+        self.hlen = 6  # len(Mac Address)
+        self.plen = 4  # len(IP Address)
         self.op = 1  # 1 for request, 2 for reply
-        self.src_mac = ''  # has to be form of '002522db8cb6'
+        self.src_mac = ''
         self.src_ip = ''
         self.dst_mac = ''
         self.dst_ip = ''
@@ -112,7 +123,7 @@ class EthernetSocket:
     def __init__(self):
         self.src_mac = ''
         self.dst_mac = ''
-        self.gateway_mac = ''
+        self.gateway_mac = ''  # Mac address of the default gateway
 
         self.send_sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
         self.send_sock.bind(('eth0', 0))
