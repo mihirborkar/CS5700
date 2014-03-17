@@ -1,9 +1,9 @@
 from random import randint
 import socket
 import struct
+
 import sys
 import time
-
 from ip import IPSocket
 from utility import get_localhost_ip, get_open_port, checksum
 

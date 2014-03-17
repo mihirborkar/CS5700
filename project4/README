@@ -2,10 +2,34 @@ This project is made by
  * Yaming Huang (yummin@ccs.neu.edu)
  * Shuyi Zhang (zsyqq@ccs.neu.edu)
 
-Note:
+Note: THIS PROJECT HAS ALREADY IMPLEMENTED LAYER-2 SOCKET, WHICH INCLUDES ARP PROTOCOL AND ETHERNET FRAME.
 ===================
 High-Level Approach
+Class diagram
+
+    +-------------+      +--------------+        +-------------+       +---------------+
+    |  HTTPSocket |      |   TCPSocket  |        |   IPSocket  |       | EthernetSocket|
+    |-------------|      |--------------|        |-------------|       |---------------|
+    |             +----->|+ connect()   +------->|+ send(data) +------>|+ send(data)   |
+    |             |      |+ send(data)  |        |+ recv()     |       |+ recv()       |
+    |             |      |+ recv()      |        |             |       |               |
+    |             |      |+ close()     |        |             |       |               |
+    +-----+-------+      +-------+------+        +------+------+       +-----+---------+
+          |                      |                      |                    |
+          |                      |                      |                    |
+          V                      V                      V                    V
+   +------+------+      +--------+------+        +------+-------+      +-----+---------+
+   |  HTTPPacket |      |  TCPPacket    |        |   IPPacket   |      | EthernetPacket|
+   |-------------|      |---------------|        |--------------|      |---------------|
+   |             |      |               |        |              |      |               |
+   |             |      |               |        |              |      |               |
+   |             |      |               |        |              |      |               |
+   +-------------+      +---------------+        +--------------+      +---------------+
 ==================
 Challenge
 The most challenging part in this project is testing and debugging.
-
+Instead of using Wireshark, we found tcpdump command is more convenient to capture and parse packets. For example,
+If I want to capture TCP communication packets between two hosts, I can use the following command:
+> tcpdump -XX -i eth0 dst 129.10.113.83
+Another useful trick to debug is instrumentation. We instrument some stubs in our code that can output key variables
+and monitor the performance when code is running.

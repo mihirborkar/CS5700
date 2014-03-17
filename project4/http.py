@@ -27,8 +27,11 @@ class HTTPPacket():
                   "Host: " + self.hostname + \
                   "\r\n\r\n"
 
-        #print '[DEBUG]HTTP Request:\n' + request
         return request
+
+    def debug_print(self):
+        request = self.build_request()
+        print '[DEBUG]HTTP Request:\n' + request
 
 
 class HTTPSocket:
@@ -47,8 +50,13 @@ class HTTPSocket:
             return name
 
         filename = get_filename(_url)
+        print '[DEBUG]File Name: ' + filename
         f = open(filename, 'wb+')
         packet = HTTPPacket(_url)
+
+        packet.debug_print()
+
+        self.sock.connect(packet.hostname, 80)
         self.send(packet)
         data = self.recv()
         f.write(data)
@@ -66,21 +74,21 @@ class HTTPSocket:
         """
         Receive data and write it to a file
         """
-
         def parse_header(response):
             index = response.find('\r\n\r\n') + 4
             header = response[:index]
             return header[9:12], index
 
         data = self.sock.recv()
+        pos = 0
         if data.startswith('HTTP/1.1'):
             status, pos = parse_header(data)
-            if status != 200:
+            if status != '200':
+                print '[DEBUG]Status Code: ' + status
                 sys.exit('The HTTP Response has an  abnormal status code.')
-            pass
         else:
             pass
-        return data
+        return data[pos:]
 
     def close(self):
         self.sock.close()
