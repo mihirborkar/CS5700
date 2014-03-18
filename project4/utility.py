@@ -49,6 +49,8 @@ def checksum(msg):
     """checksum functions needed for calculation checksum
     :param msg: 
     """
+    if len(msg) % 2 == 1:  # the length of msg in bytes is an odd number
+        msg += struct.pack('B', 0)
     s = 0
     # loop taking 2 characters at a time
     for i in range(0, len(msg), 2):

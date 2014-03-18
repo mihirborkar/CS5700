@@ -101,11 +101,10 @@ class TCPPacket:
                                     socket.inet_aton(self.src_ip),
                                     socket.inet_aton(self.dst_ip),
                                     0,
-                                    socket.IPPROTO_TCP,  # Protocol, 
+                                    socket.IPPROTO_TCP,  # Protocol,
                                     self.doff * 4 + len(self.data))
 
-        pseudo_header = pseudo_header + tcp_header + self.data
-        self.check = checksum(pseudo_header)
+        self.check = checksum(pseudo_header + tcp_header + self.data)
 
         # finally assemble tcp header
         tcp_header = struct.pack('!HHLLBBH',
@@ -147,7 +146,16 @@ class TCPPacket:
         # get data
         self.data = raw_packet[self.doff * 4:]
 
-        # TODO compare checksum
+        # assemble pseudo header to calculate checksum
+        pseudo_header = struct.pack('!4s4sBBH',
+                                    socket.inet_aton(self.src_ip),
+                                    socket.inet_aton(self.dst_ip),
+                                    0,
+                                    socket.IPPROTO_TCP,  # Protocol,
+                                    self.doff * 4 + len(self.data))
+        if checksum(pseudo_header + raw_packet) != 0:
+            # TODO: Throw an except and resend
+            sys.exit('TCP checksum does not match')
 
     def debug_print(self):
         print '[DEBUG]TCP Packet'

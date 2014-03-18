@@ -121,9 +121,10 @@ class IPPacket:
         self.data = raw_packet[self.ihl * 4:self.tot_len]
 
         # Check the checksum
-        header = raw_packet[:10] + struct.pack('H', 0) + raw_packet[12:self.ihl * 4]
+        header = raw_packet[:self.ihl * 4]
 
-        if checksum(header) != self.check:
+        if checksum(header) != 0:
+            # Throw an except
             sys.exit('IP checksum does not match')
 
     def debug_print(self):
