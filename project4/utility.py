@@ -4,9 +4,24 @@ import socket
 import struct
 
 
+class ChecksumError(Exception):
+    def __init__(self, _type):
+        self.type = _type
+
+    def __str__(self):
+        return self.type + ' checksum is not match.'
+
+
+class TimeOutError(Exception):
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return 'Timeout Error'
+
+
 def get_open_port():
-    """Get a free port for TCP
-    """
+    """Get a free port for TCP"""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 0))
     port = s.getsockname()[1]

@@ -149,7 +149,7 @@ class EthernetSocket:
     def recv(self):
         packet = EthernetPacket()
         while True:
-            pkt = self.recv_sock.recvfrom(4096)[0]
+            pkt = self.recv_sock.recv(4096)
             packet.rebuild(pkt)
             if packet.dst == self.src_mac:  # and packet.src_mac == self.dst_mac:
                 return packet.data
@@ -177,7 +177,7 @@ class EthernetSocket:
 
         arp_res = ARPPacket()
         while True:
-            pkt = recv_sock.recvfrom(4096)[0]
+            pkt = recv_sock.recv(4096)
             packet.rebuild(pkt)
 
             if packet.dst == self.src_mac:

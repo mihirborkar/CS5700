@@ -5,9 +5,9 @@ import struct
 import sys
 import time
 from ip import IPSocket
-from utility import get_localhost_ip, get_open_port, checksum
+from utility import ChecksumError, get_localhost_ip, get_open_port, checksum
 
-
+import binascii
 '''
 TCP Header
 0                   1                   2                   3
@@ -154,8 +154,7 @@ class TCPPacket:
                                     socket.IPPROTO_TCP,  # Protocol,
                                     self.doff * 4 + len(self.data))
         if checksum(pseudo_header + raw_packet) != 0:
-            # TODO: Throw an except and resend
-            sys.exit('TCP checksum does not match')
+            raise ChecksumError('TCP')
 
     def debug_print(self):
         print '[DEBUG]TCP Packet'
@@ -313,8 +312,8 @@ class TCPSocket:
             except:
                 continue
             # packet received
-            # packet.src_ip = self.dst_ip
-            # packet.dst_ip = self.src_ip
+            packet.src_ip = self.dst_ip
+            packet.dst_ip = self.src_ip
             packet.rebuild(pkt)
 
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:

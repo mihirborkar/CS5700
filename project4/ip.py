@@ -4,7 +4,7 @@ import struct
 import sys
 
 from ethernet import EthernetSocket
-from utility import checksum
+from utility import ChecksumError, checksum
 
 
 '''
@@ -124,8 +124,7 @@ class IPPacket:
         header = raw_packet[:self.ihl * 4]
 
         if checksum(header) != 0:
-            # Throw an except
-            sys.exit('IP checksum does not match')
+            raise ChecksumError('IP')
 
     def debug_print(self):
         print '[DEBUG]IP Packet'
@@ -155,7 +154,7 @@ class IPSocket:
         packet = IPPacket()
         while True:
             packet.reset()
-            #pkt = self.recv_sock.recvfrom(65535)[]
+            #pkt = self.recv_sock.recv(4096)
             pkt = self.sock.recv()
             packet.rebuild(pkt)
 

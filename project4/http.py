@@ -59,6 +59,7 @@ class HTTPSocket:
         self.sock.connect(packet.hostname, 80)
         self.send(packet)
         data = self.recv()
+        # print '[DEBUG]Write Data:\n' + data
         f.write(data)
         f.close()
 
@@ -74,9 +75,11 @@ class HTTPSocket:
         """
         Receive data and write it to a file
         """
+        # TODO: Handle Timeout and big file
         def parse_header(response):
             index = response.find('\r\n\r\n') + 4
             header = response[:index]
+            # print '[DEBUG]HTTP Header:\n' + header
             return header[9:12], index
 
         data = self.sock.recv()
