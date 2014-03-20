@@ -5,7 +5,7 @@ import struct
 import sys
 import time
 from ip import IPSocket
-from utility import ChecksumError, get_localhost_ip, get_open_port, checksum
+from utility import ChecksumError, TimeOutError, get_localhost_ip, get_open_port, checksum
 
 import binascii
 '''
@@ -213,6 +213,7 @@ class TCPSocket:
         packet = self.build_sending_packet()
         packet.ack = 1
         self.__send(packet)
+        print '===========Connection Done=========='
 
     def send(self, data):
         # Send the packet
@@ -233,6 +234,8 @@ class TCPSocket:
         else:
             sys.exit('Wrong ACK Packet')
 
+        print '===========Send Done=========='
+
     def recv(self):
         tcp_data = ''
         packet = TCPPacket()
@@ -242,7 +245,7 @@ class TCPSocket:
                 packet = self.build_sending_packet()
                 # Set ACK for previous packet
                 packet.ack_no = self.pre_ack
-                packet.seq_np = self.pre_seq
+                packet.seq_no = self.pre_seq
                 packet.ack = 1
                 self.__send(packet)
                 # After sending ack, decrease ack_count by 1
@@ -250,22 +253,33 @@ class TCPSocket:
 
             # Receive packet
             packet.reset()
-            packet = self.__recv()
-            if packet == '':
+            try:
+                packet = self.__recv()
+            except TimeOutError:
                 break
+
+            if packet.seq_no != self.pre_ack:
+                print '~~~~~~~~~~~'
+                print packet.data
+                print '~~~~~~~~~~~'
+                tcp_data += packet.data
+            else:
+                # Duplicate packets, drop it
+                pass
+
             # Set previous ack# to current ack
             if self.ack_count > 0:
                 self.pre_ack = self.ack
                 self.pre_seq = self.seq
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
-            tcp_data += packet.data
             # Increase ack_count by 1, for acknowledge
             self.ack_count += 1
 
         return tcp_data
 
     def close(self):
+        print '===========Close Begin=========='
         # Send FIN+ACK
         packet = self.build_sending_packet()
         packet.fin = 1
@@ -286,6 +300,7 @@ class TCPSocket:
         packet = self.build_sending_packet()
         packet.ack = 1
         self.__send(packet)
+        print '===========Close Done=========='
 
     def build_sending_packet(self):
         packet = TCPPacket()
@@ -320,7 +335,8 @@ class TCPSocket:
                 # print '[DEBUG]Receive:'
                 # packet.debug_print()
                 return packet
-        return ''
+        else:
+            raise TimeOutError
 
 
 if __name__ == "__main__":

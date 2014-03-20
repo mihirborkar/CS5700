@@ -50,7 +50,7 @@ class HTTPSocket:
             return name
 
         filename = get_filename(_url)
-        print '[DEBUG]File Name: ' + filename
+        # print '[DEBUG]File Name: ' + filename
         f = open(filename, 'wb+')
         packet = HTTPPacket(_url)
 
@@ -79,7 +79,7 @@ class HTTPSocket:
         def parse_header(response):
             index = response.find('\r\n\r\n') + 4
             header = response[:index]
-            # print '[DEBUG]HTTP Header:\n' + header
+            print '[DEBUG]HTTP Header:\n' + header
             return header[9:12], index
 
         data = self.sock.recv()
