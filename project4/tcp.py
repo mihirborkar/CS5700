@@ -31,7 +31,8 @@ TCP Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 '''
 
-TIME_OUT = 0.1
+TIME_OUT = 1
+RTO = 2 * TIME_OUT
 
 
 class TCPPacket:
@@ -199,10 +200,10 @@ class TCPSocket:
         # Receive SYN+ACK
         packet.reset()
         packet = self.__recv()
+
         print '[DEBUG]Connection Receive'
         packet.debug_print()
-        if packet == '':
-            sys.exit('Socket Time Out During Connection')
+
         if packet.ack_no == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
             self.ack = packet.seq_no + 1
             self.seq = packet.ack_no
@@ -226,8 +227,7 @@ class TCPSocket:
         # Get ACK of the sent packet
         packet.reset()
         packet = self.__recv()
-        if packet == '':
-            sys.exit('Socket Time Out During Sending TCP Packet')
+
         if packet.ack_no == (self.seq + len(data)):
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
@@ -259,9 +259,9 @@ class TCPSocket:
                 break
 
             if packet.seq_no != self.pre_ack:
-                print '~~~~~~~~~~~'
-                print packet.data
-                print '~~~~~~~~~~~'
+                # print '~~~~~~~~~~~'
+                # print packet.data
+                # print '~~~~~~~~~~~'
                 tcp_data += packet.data
             else:
                 # Duplicate packets, drop it
@@ -291,8 +291,7 @@ class TCPSocket:
         # Receive FIN+ACK
         packet.reset()
         packet = self.__recv()
-        if packet == '':
-            sys.exit('Wrong FIN+ACK Packet')
+
         self.ack = packet.seq_no + 1
         self.seq = packet.ack_no
 
@@ -332,8 +331,8 @@ class TCPSocket:
             packet.rebuild(pkt)
 
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:
-                # print '[DEBUG]Receive:'
-                # packet.debug_print()
+                print '[DEBUG]TCP Receive:'
+                packet.debug_print()
                 return packet
         else:
             raise TimeOutError

@@ -142,8 +142,8 @@ class EthernetSocket:
         self.dst_mac = self.gateway_mac
         packet = EthernetPacket(self.src_mac, self.dst_mac, data=data)
 
-        print '[DEBUG]Send Ethernet Packet'
-        packet.debug_print()
+        # print '[DEBUG]Send Ethernet Packet'
+        # packet.debug_print()
         self.send_sock.send(packet.build())
 
     def recv(self):
@@ -171,8 +171,8 @@ class EthernetSocket:
         arp_req.op = ARPOP_REQUEST
 
         packet = EthernetPacket(self.src_mac, 'ffffffffffff', 0x0806, arp_req.build())
-        print('[DEBUG]Send Ethernet packet')
-        packet.debug_print()
+        # print('[DEBUG]Send Ethernet packet')
+        # packet.debug_print()
         send_sock.sendto(packet.build(), ('eth0', 0))
 
         arp_res = ARPPacket()
@@ -181,8 +181,8 @@ class EthernetSocket:
             packet.rebuild(pkt)
 
             if packet.dst == self.src_mac:
-                print('[DEBUG]ARP REPLY Ethernet Packet')
-                packet.debug_print()
+                # print('[DEBUG]ARP REPLY Ethernet Packet')
+                # packet.debug_print()
                 arp_res.rebuild(packet.data[:28])
                 arp_res.debug_print()
                 if arp_res.src_ip == dst_ip and arp_res.dst_ip == src_ip:

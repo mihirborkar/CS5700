@@ -145,8 +145,8 @@ class IPSocket:
     def send(self, data):
 
         packet = IPPacket(self.src, self.dst, data)
-        print '[DEBUG]Send IP Packet:'
-        packet.debug_print()
+        # print '[DEBUG]Send IP Packet:'
+        # packet.debug_print()
         #self.send_s.sendto(packet.build(), (self.des, 0))
         self.sock.send(packet.build())
 
@@ -158,8 +158,8 @@ class IPSocket:
             pkt = self.sock.recv()
             packet.rebuild(pkt)
 
-            print '[DEBUG]IP Receive:'
-            packet.debug_print()
+            # print '[DEBUG]IP Receive:'
+            # packet.debug_print()
 
             if packet.proto == socket.IPPROTO_TCP and packet.src == self.dst and packet.dst == self.src:
                 return packet.data

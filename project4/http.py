@@ -1,6 +1,8 @@
 import socket
 import sys
 
+import string
+import re
 from tcp import TCPSocket
 
 
@@ -54,7 +56,7 @@ class HTTPSocket:
         f = open(filename, 'wb+')
         packet = HTTPPacket(_url)
 
-        packet.debug_print()
+        # packet.debug_print()
 
         self.sock.connect(packet.hostname, 80)
         self.send(packet)
@@ -87,7 +89,7 @@ class HTTPSocket:
         if data.startswith('HTTP/1.1'):
             status, pos = parse_header(data)
             if status != '200':
-                print '[DEBUG]Status Code: ' + status
+                # print '[DEBUG]Status Code: ' + status
                 sys.exit('The HTTP Response has an  abnormal status code.')
         else:
             pass
@@ -103,3 +105,4 @@ if __name__ == "__main__":
     url = sys.argv[1]
     sock = HTTPSocket()
     sock.download(url)
+    sock.close()
