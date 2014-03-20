@@ -1,8 +1,6 @@
 import socket
 import sys
 
-import string
-import re
 from tcp import TCPSocket
 
 
@@ -62,6 +60,7 @@ class HTTPSocket:
         self.send(packet)
         data = self.recv()
         # print '[DEBUG]Write Data:\n' + data
+        print '[DEBUG]Content Length: ', len(data)
         f.write(data)
         f.close()
 

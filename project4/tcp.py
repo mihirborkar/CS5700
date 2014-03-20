@@ -7,7 +7,6 @@ import time
 from ip import IPSocket
 from utility import ChecksumError, TimeOutError, get_localhost_ip, get_open_port, checksum
 
-import binascii
 '''
 TCP Header
 0                   1                   2                   3
@@ -161,7 +160,8 @@ class TCPPacket:
         print '[DEBUG]TCP Packet'
         print 'Source: %s : %d' % (self.src_ip, self.src_port)
         print 'Destination: %s : %d' % (self.dst_ip, self.dst_port)
-        print 'Sequence: %d\tAcknowledgement: %d' % (self.seq_no, self.ack_no)
+        print 'Sequence: %d\tAcknowledgement: %d\tLength: %d' % (self.seq_no, self.ack_no, len(self.data))
+        print 'SYN: %d\tACK: %d\tPSH: %d\tFIN: %d' % (self.syn, self.ack, self.psh, self.fin)
 
 
 class TCPSocket:
@@ -177,6 +177,9 @@ class TCPSocket:
         self.ack_count = 0
         self.pre_ack = -1
         self.pre_seq = -1
+        self.cwnd = 1
+        self.r=[]
+        self.a=[]
 
     def connect(self, dst_host, port=80):
         # Set field
@@ -199,15 +202,18 @@ class TCPSocket:
 
         # Receive SYN+ACK
         packet.reset()
-        packet = self.__recv()
-
-        print '[DEBUG]Connection Receive'
-        packet.debug_print()
+        try:
+            packet = self.__recv()
+        except (ChecksumError, TimeOutError) as e:
+            print e
+            self.cwnd -= 1
 
         if packet.ack_no == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
             self.ack = packet.seq_no + 1
             self.seq = packet.ack_no
+            self.cwnd = 1000 if self.cwnd + 1 >=1000 else self.cwnd + 1
         else:
+            self.cwnd -= 1
             sys.exit('Wrong SYN+ACK Packet')
 
         # Send ACK
@@ -222,17 +228,26 @@ class TCPSocket:
         packet.ack = 1
         packet.psh = 1
         packet.data = data
+        backup = packet
         self.__send(packet)
 
         # Get ACK of the sent packet
         packet.reset()
-        packet = self.__recv()
+        try:
+            packet = self.__recv()
+        except (ChecksumError, TimeOutError) as e:
+            print e
+            self.cwnd -= 1
+            self.__send(backup)
 
         if packet.ack_no == (self.seq + len(data)):
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
+            self.cwnd = 1000 if self.cwnd + 1 >=1000 else self.cwnd + 1
         else:
-            sys.exit('Wrong ACK Packet')
+            print 'Wrong ACK Packet'
+            self.cwnd -= 1
+            self.__send(backup)
 
         print '===========Send Done=========='
 
@@ -248,6 +263,7 @@ class TCPSocket:
                 packet.seq_no = self.pre_seq
                 packet.ack = 1
                 self.__send(packet)
+                self.a.append(packet.ack_no)
                 # After sending ack, decrease ack_count by 1
                 self.ack_count -= 1
 
@@ -258,10 +274,11 @@ class TCPSocket:
             except TimeOutError:
                 break
 
-            if packet.seq_no != self.pre_ack:
+            if packet.seq_no == self.ack:
                 # print '~~~~~~~~~~~'
                 # print packet.data
                 # print '~~~~~~~~~~~'
+                self.r.append(packet.seq_no)
                 tcp_data += packet.data
             else:
                 # Duplicate packets, drop it
@@ -273,9 +290,12 @@ class TCPSocket:
                 self.pre_seq = self.seq
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
+            self.cwnd = 1000 if self.cwnd + 1 >=1000 else self.cwnd + 1
             # Increase ack_count by 1, for acknowledge
             self.ack_count += 1
 
+        print self.a
+        print self.r
         return tcp_data
 
     def close(self):
@@ -290,7 +310,10 @@ class TCPSocket:
 
         # Receive FIN+ACK
         packet.reset()
-        packet = self.__recv()
+        try:
+            packet = self.__recv()
+        except (ChecksumError, TimeOutError) as e:
+            print e
 
         self.ack = packet.seq_no + 1
         self.seq = packet.ack_no

@@ -184,7 +184,7 @@ class EthernetSocket:
                 # print('[DEBUG]ARP REPLY Ethernet Packet')
                 # packet.debug_print()
                 arp_res.rebuild(packet.data[:28])
-                arp_res.debug_print()
+                # arp_res.debug_print()
                 if arp_res.src_ip == dst_ip and arp_res.dst_ip == src_ip:
                     break
 
