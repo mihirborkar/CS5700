@@ -1,7 +1,9 @@
 import socket
 import sys
+import time
 
 from tcp import TCPSocket
+from utility import TimeOutError
 
 
 class HTTPPacket():
@@ -56,13 +58,22 @@ class HTTPSocket:
 
         # packet.debug_print()
 
-        self.sock.connect(packet.hostname, 80)
-        self.send(packet)
-        data = self.recv()
+        try:
+            self.sock.connect(packet.hostname, 80)
+            self.send(packet)
+            data = self.recv()
+        except TimeOutError:
+            sys.exit('Time out')
+        except socket.error as se:
+            sys.exit('Socket error:' + repr(se))
+        except Exception as e:
+            sys.exit('Unexpected error:' + repr(e))
         # print '[DEBUG]Write Data:\n' + data
-        print '[DEBUG]Content Length: ', len(data)
-        f.write(data)
-        f.close()
+        # print '[DEBUG]Content Length: ', len(data)
+        else:
+            f.write(data)
+        finally:
+            f.close()
 
     def send(self, packet):
         try:
@@ -76,23 +87,27 @@ class HTTPSocket:
         """
         Receive data and write it to a file
         """
-        # TODO: Handle Timeout and big file
+        # TODO: Handle big files
         def parse_header(response):
             index = response.find('\r\n\r\n') + 4
             header = response[:index]
             print '[DEBUG]HTTP Header:\n' + header
             return header[9:12], index
 
-        data = self.sock.recv()
-        pos = 0
-        if data.startswith('HTTP/1.1'):
-            status, pos = parse_header(data)
-            if status != '200':
-                # print '[DEBUG]Status Code: ' + status
-                sys.exit('The HTTP Response has an  abnormal status code.')
+        st = time.time()
+        while (time.time() - st) < 180:
+            data = self.sock.recv()
+            pos = 0
+            if data.startswith('HTTP/1.1'):
+                status, pos = parse_header(data)
+                if status != '200':
+                    # print '[DEBUG]Status Code: ' + status
+                    sys.exit('The HTTP Response has an  abnormal status code.')
+            else:
+                pass
+            return data[pos:]
         else:
-            pass
-        return data[pos:]
+            raise TimeOutError
 
     def close(self):
         self.sock.close()

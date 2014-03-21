@@ -1,11 +1,12 @@
 from random import randint
 import socket
 import struct
-
 import sys
 import time
+
 from ip import IPSocket
 from utility import ChecksumError, TimeOutError, get_localhost_ip, get_open_port, checksum
+
 
 '''
 TCP Header
@@ -178,8 +179,6 @@ class TCPSocket:
         self.pre_ack = -1
         self.pre_seq = -1
         self.cwnd = 1
-        self.r=[]
-        self.a=[]
 
     def connect(self, dst_host, port=80):
         # Set field
@@ -198,6 +197,7 @@ class TCPSocket:
         packet.syn = 1
 
         # Send SYN
+        backup = packet
         self.__send(packet)
 
         # Receive SYN+ACK
@@ -205,16 +205,18 @@ class TCPSocket:
         try:
             packet = self.__recv()
         except (ChecksumError, TimeOutError) as e:
-            print e
+            # print e
             self.cwnd -= 1
+            self.__send(backup)
 
         if packet.ack_no == (self.seq + 1) and packet.syn == 1 and packet.ack == 1:
             self.ack = packet.seq_no + 1
             self.seq = packet.ack_no
-            self.cwnd = 1000 if self.cwnd + 1 >=1000 else self.cwnd + 1
+            self.cwnd = 1000 if self.cwnd + 1 >= 1000 else self.cwnd + 1
         else:
+            # print 'Wrong SYN+ACK Packet'
             self.cwnd -= 1
-            sys.exit('Wrong SYN+ACK Packet')
+            self.__send(backup)
 
         # Send ACK
         packet = self.build_sending_packet()
@@ -243,7 +245,7 @@ class TCPSocket:
         if packet.ack_no == (self.seq + len(data)):
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
-            self.cwnd = 1000 if self.cwnd + 1 >=1000 else self.cwnd + 1
+            self.cwnd = 1000 if self.cwnd + 1 >= 1000 else self.cwnd + 1
         else:
             print 'Wrong ACK Packet'
             self.cwnd -= 1
@@ -263,7 +265,6 @@ class TCPSocket:
                 packet.seq_no = self.pre_seq
                 packet.ack = 1
                 self.__send(packet)
-                self.a.append(packet.ack_no)
                 # After sending ack, decrease ack_count by 1
                 self.ack_count -= 1
 
@@ -278,7 +279,6 @@ class TCPSocket:
                 # print '~~~~~~~~~~~'
                 # print packet.data
                 # print '~~~~~~~~~~~'
-                self.r.append(packet.seq_no)
                 tcp_data += packet.data
             else:
                 # Duplicate packets, drop it
@@ -290,12 +290,10 @@ class TCPSocket:
                 self.pre_seq = self.seq
             self.ack = packet.seq_no + len(packet.data)
             self.seq = packet.ack_no
-            self.cwnd = 1000 if self.cwnd + 1 >=1000 else self.cwnd + 1
+            self.cwnd = 1000 if self.cwnd + 1 >= 1000 else self.cwnd + 1
             # Increase ack_count by 1, for acknowledge
             self.ack_count += 1
 
-        print self.a
-        print self.r
         return tcp_data
 
     def close(self):
@@ -364,4 +362,4 @@ class TCPSocket:
 if __name__ == "__main__":
     sock = TCPSocket()
     sock.connect('cs5700.ccs.neu.edu', 80)
-    # sock.close()
+    sock.close()
