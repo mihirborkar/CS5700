@@ -91,7 +91,7 @@ class HTTPSocket:
         def parse_header(response):
             index = response.find('\r\n\r\n') + 4
             header = response[:index]
-            print '[DEBUG]HTTP Header:\n' + header
+            # print '[DEBUG]HTTP Header:\n' + header
             return header[9:12], index
 
         st = time.time()

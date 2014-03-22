@@ -222,7 +222,7 @@ class TCPSocket:
         packet = self.build_sending_packet()
         packet.ack = 1
         self.__send(packet)
-        print '===========Connection Done=========='
+        # print '===========Connection Done=========='
 
     def send(self, data):
         # Send the packet
@@ -247,11 +247,11 @@ class TCPSocket:
             self.seq = packet.ack_no
             self.cwnd = 1000 if self.cwnd + 1 >= 1000 else self.cwnd + 1
         else:
-            print 'Wrong ACK Packet'
+            # print 'Wrong ACK Packet'
             self.cwnd -= 1
             self.__send(backup)
 
-        print '===========Send Done=========='
+        # print '===========Send Done=========='
 
     def recv(self):
         tcp_data = ''
@@ -297,7 +297,7 @@ class TCPSocket:
         return tcp_data
 
     def close(self):
-        print '===========Close Begin=========='
+        # print '===========Close Begin=========='
         # Send FIN+ACK
         packet = self.build_sending_packet()
         packet.fin = 1
@@ -320,7 +320,7 @@ class TCPSocket:
         packet = self.build_sending_packet()
         packet.ack = 1
         self.__send(packet)
-        print '===========Close Done=========='
+        # print '===========Close Done=========='
 
     def build_sending_packet(self):
         packet = TCPPacket()
@@ -333,8 +333,8 @@ class TCPSocket:
         return packet
 
     def __send(self, packet):
-        print('[DEBUG]Send Packet:')
-        packet.debug_print()
+        # print('[DEBUG]Send Packet:')
+        # packet.debug_print()
         self.sock.send(packet.build())
 
     def __recv(self):
@@ -352,8 +352,8 @@ class TCPSocket:
             packet.rebuild(pkt)
 
             if packet.src_port == self.dst_port and packet.dst_port == self.src_port:
-                print '[DEBUG]TCP Receive:'
-                packet.debug_print()
+                # print '[DEBUG]TCP Receive:'
+                # packet.debug_print()
                 return packet
         else:
             raise TimeOutError
