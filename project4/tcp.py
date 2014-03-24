@@ -316,7 +316,7 @@ class TCPSocket:
         self.ack = packet.seq_no + 1
         self.seq = packet.ack_no
 
-        'send ack'
+        # send ack
         packet = self.build_sending_packet()
         packet.ack = 1
         self.__send(packet)
