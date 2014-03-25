@@ -1,7 +1,6 @@
 from random import randint
 import socket
 import struct
-import sys
 import time
 
 from ip import IPSocket
@@ -205,7 +204,7 @@ class TCPSocket:
         try:
             packet = self.__recv()
         except (ChecksumError, TimeOutError) as e:
-            # print e
+            print e
             self.cwnd -= 1
             self.__send(backup)
 
