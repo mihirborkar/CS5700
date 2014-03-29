@@ -1,5 +1,4 @@
 import getopt
-import random
 import SocketServer
 import socket
 import struct
@@ -62,7 +61,8 @@ class DNSPacket:
                             self.qcount, self.acount,
                             self.nscount, self.arcount)
         if self.qcount > 0:
-            packet += self.query.create()
+            domain = self.query.qname
+            packet += self.query.create(domain)
         if self.acount > 0:
             packet += self.answer.create()
 
@@ -113,7 +113,7 @@ class DNSQuery:
 
 class DNSAnswer:
     def __init__(self, ip):
-        self.aname = 0xC02C
+        self.aname = 0xC00C
         self.atype = 0x0001
         self.aclass = 0x0001
         self.ttl = 60  # time to live
@@ -121,8 +121,7 @@ class DNSAnswer:
         self.len = 4
 
     def create(self):
-        ip = socket.inet_aton(self.src)
-        ans = struct.pack('>HHHLH4s', self.aname, self.atype, self.aclass, self.ttl, self.len, ip)
+        ans = struct.pack('>HHHLH4s', self.aname, self.atype, self.aclass, self.ttl, self.len, socket.inet_aton(self.data))
         return ans
 
     def debug_print(self):
@@ -137,12 +136,15 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
         data = self.request[0].strip()
         sock = self.request[1]
         packet = DNSPacket(data)
+        print '[DEBUG] Receive Request'
         packet.debug_print()
 
         if packet.query.qtype == 1:
             domain = packet.query.qname
             if RECORD.__contains__(domain):
                 packet.setip(RECORD[domain])
+                print '[DEBUG] Send Answer'
+                packet.debug_print()
                 sock.sendto(packet.build(), self.client_address)
             else:
                 sock.sendto(data, self.client_address)
@@ -177,6 +179,5 @@ def parse(args):
 
 if __name__ == '__main__':
     port, domain = parse(sys.argv[1:])
-    print port, type(port)
     server = SimpleDNSServer(port)
     server.start()
