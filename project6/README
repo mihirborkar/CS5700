@@ -1,0 +1,40 @@
+Task 1: What are your apps doing with the network?
+
+Approach
+In order to count how many sites are contacted by each app,
+
+1. Filter DNS traffic from tcpdump trace files
+2. Observe domain names my phone requested, then determine the source of the request by comparing the domain names with company or app's name. For example, if there is a dns request for 'images.ak.instagram.com', I can assert Instagram contacted images.ak.instagram.com.
+3. Count sites each app contact
+
+However, this approach has some weaknesses. For example, I use QQ, QQNews and WeChat. These apps are developed by Tencent Inc. Most of their dns request contains 'qq.com' or 'qq.net'. It is hard to determine which exact app send a dns request contains 'qq'. Some apps use CDN or AWS, their dns request does not contains company names or Apps' names. This is also an obstacle to determine the source of DNS request.
+
+Question 1: How many sites are contacted by each app that you use?
+As I mentioned above, following statistics are collected based on DNS traffic extracted from tcpdump files.
+
+iCloud: 162
+Safari: 810
+iTunes: 24
+Mail: 6
+Weather(Yahoo): 15
+myAT&T: 20
+Weibo: 106
+Twitter: 6
+Facebook: 81
+Google: 71
+Zhihu Daily
+Youdao: 44
+Renren: 36
+Pocket: 2
+Instagram: 37
+Feedly: 14
+BOA: 2
+Evernote: 12
+VeryZhun: 4
+QQ, WeChat and QQNews: 103
+
+Question 2: Does that traffic seem legitimate?
+I did not find any suspicious traffic. I think all traffics are legitimate.
+
+Question 3: Is there anything surprising in your data?
+The most surprising fact is most of traffic are served by CDN like Akamai.

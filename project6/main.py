@@ -7,5 +7,9 @@ list_dirs = os.walk(dir)
 
 for root, dirs, files in list_dirs:
     for d in dirs:
-        command = './all.sh ' + os.path.join(root, d)
+        # command = './all.sh ' + os.path.join(root, d)
+        command = './parse.sh ' + os.path.join(root, d)
+        # print command
         os.system(command)
+
+    break

@@ -22,9 +22,8 @@ egrep -io "[^a-zA-Z]?lat([^a-zA-Z]|itude).*[0-9]+(\.?)[0-9]+" httpdata.txt | sor
 
 echo "Looking for phone specific things"
 #phone-specific searches
-grep -i "[your IMEI and/or device ID]" httpdata.txt | sort | uniq -c
-grep -i "355031040753366" httpdata.txt | sort | uniq -c
-grep -i "[your username(s)]" httpdata.txt | sort| uniq -c
+grep -i "013442003399804" httpdata.txt | sort | uniq -c
+grep -i "yumminhuang" httpdata.txt | sort| uniq -c
 grep -i "[your passwords]" httpdata.txt | sort | uniq -c
 
 #contact info (phone specific)
