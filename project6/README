@@ -38,3 +38,8 @@ I did not find any suspicious traffic. I think all traffics are legitimate.
 
 Question 3: Is there anything surprising in your data?
 The most surprising fact is most of traffic are served by CDN like Akamai.
+
+
+Task 2: Identify PII
+
+I use grepForStuff.sh to parse tcpdump trace files. The only personally identifiable information (PII) that was leaked by my device is my location. This information was leaked by iPhone's built-in Weather App and Map App.
