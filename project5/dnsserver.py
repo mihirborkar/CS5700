@@ -163,21 +163,21 @@ class SimpleDNSServer:
         server.serve_forever()
 
 
-def parse(args):
+def parse(argvs):
     port = 0
     name = ''
 
-    opts, args = getopt.getopt(args,'p:n:')
+    opts, args = getopt.getopt(argvs[1:],'p:n:')
     for o, a in opts:
         if o == '-p':
             port = int(a)
         elif o == '-n':
             name = a
         else:
-            print 'Usage: %s -p <port> -n <name>' % sys.argv[0]
+            print 'Usage: %s -p <port> -n <name>' % argvs[0]
     return port, name
 
 if __name__ == '__main__':
-    port, domain = parse(sys.argv[1:])
+    port, domain = parse(sys.argv)
     server = SimpleDNSServer(port)
     server.start()

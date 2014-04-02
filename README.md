@@ -5,7 +5,7 @@ The Project is made by
 *  Yaming Huang
 *  Shuyi Zhang
 
-The project includes 5 sub-projects:
+This project includes 5 sub-projects and 1 extra sub-project:
 
 1. [Socket](http://david.choffnes.com/classes/cs4700sp14/project1.php)
 2. [Web Crawler](http://david.choffnes.com/classes/cs4700sp14/project2.php)
