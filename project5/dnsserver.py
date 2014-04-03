@@ -42,10 +42,28 @@ DNS Answer
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
 /                      RDATA                    /
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+EC2 Hosts
+ec2-54-85-79-138.compute-1.amazonaws.com    Origin server (running Web server on port 8080)
+ec2-54-84-248-26.compute-1.amazonaws.com    N. Virginia
+ec2-54-186-185-27.us-west-2.compute.amazonaws.com   Oregon
+ec2-54-215-216-108.us-west-1.compute.amazonaws.com  N. California
+ec2-54-72-143-213.eu-west-1.compute.amazonaws.com   Ireland
+ec2-54-255-143-38.ap-southeast-1.compute.amazonaws.com  Singapore
+ec2-54-199-204-174.ap-northeast-1.compute.amazonaws.com Tokyo
+ec2-54-206-102-208.ap-southeast-2.compute.amazonaws.com Sydney
+ec2-54-207-73-134.sa-east-1.compute.amazonaws.com   Sao Paulo
 """
 
-RECORD={'www.abc.com':'1.1.1.1',
-        'www.def.com':'2.2.2.2'}
+RECORD={'ec2-54-85-79-138.compute-1.amazonaws.com':'54.85.79.138',
+        'ec2-54-84-248-26.compute-1.amazonaws.com':'54.84.248.26',
+        'ec2-54-186-185-27.us-west-2.compute.amazonaws.com':'54.186.185.27',
+        'ec2-54-215-216-108.us-west-1.compute.amazonaws.com':'54.215.216.108',
+        'c2-54-72-143-213.eu-west-1.compute.amazonaws.com':'54.72.143.213',
+        'ec2-54-255-143-38.ap-southeast-1.compute.amazonaws.com':'54.255.143.38',
+        'ec2-54-199-204-174.ap-northeast-1.compute.amazonaws.com':'54.199.204.174',
+        'ec2-54-206-102-208.ap-southeast-2.compute.amazonaws.com':'54.206.102.208',
+        'ec2-54-207-73-134.sa-east-1.compute.amazonaws.com':'54.207.73.134'}
 
 
 class DNSPacket:
@@ -121,15 +139,16 @@ class DNSAnswer:
         self.len = 4
 
     def create(self):
-        ans = struct.pack('>HHHLH4s', self.aname, self.atype, self.aclass, self.ttl, self.len, socket.inet_aton(self.data))
+        ans = struct.pack('>HHHLH4s', self.aname, self.atype, self.aclass,
+            self.ttl, self.len, socket.inet_aton(self.data))
         return ans
 
     def debug_print(self):
         print '[DEBUG]DNS ANSWER'
-        print 'Query:', self.name
-        print 'Type: %d\tClass: %d' % (self.qtype, self.qclass)
+        print 'Query: %X'% self.aname
+        print 'Type: %d\tClass: %d' % (self.atype, self.aclass)
         print 'TTL: %d\tLength: %d' % (self.ttl, self.len)
-        print self.ip
+        print self.data
 
 class DNSUDPHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -154,7 +173,6 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
 
 class SimpleDNSServer:
     def __init__(self, port=53):
-        self.name2ip = {}
         self.port = port
 
     def start(self):

@@ -21,6 +21,7 @@ def parse(argvs):
     return port, origin
 
 def server(port):
+    # Config
     server_address = ('127.0.0.1', port)
     HandlerClass = SimpleHTTPRequestHandler
     ServerClass  = BaseHTTPServer.HTTPServer

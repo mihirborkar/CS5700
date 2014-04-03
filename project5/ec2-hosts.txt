@@ -1,4 +1,4 @@
-ec2-54-85-28-148.compute-1.amazonaws.com	Origin server (running Web server on port 8080)
+ec2-54-85-79-138.compute-1.amazonaws.com	Origin server (running Web server on port 8080)
 ec2-54-84-248-26.compute-1.amazonaws.com	N. Virginia
 ec2-54-186-185-27.us-west-2.compute.amazonaws.com	Oregon
 ec2-54-215-216-108.us-west-1.compute.amazonaws.com	N. California
