@@ -1,14 +1,19 @@
 This project is made by
+
  * Yaming Huang (yummin@ccs.neu.edu)
  * Shuyi Zhang (zsyqq@ccs.neu.edu)
 
 Milestone April 7, 2014
 =======================
-High-Level Approach
+## High-Level Approach
+### DNS Server
+Look up the format for a DNS A record query, then implement code that parses it and get the domain name that clients request. Follow the format for a DNS answer and build a DNS packet, then returns a well-formed response with a specific IP address.
 
-Techniques
+### HTTP Server
 
-Challenges
+## Techniques
+
+## Challenges
 
 Final Project April 21st, 2014
 ==============================

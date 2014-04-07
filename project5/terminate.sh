@@ -10,10 +10,7 @@ hostnames=(ec2-54-84-248-26.compute-1.amazonaws.com
 
 for host in "${hostnames[@]}"
 do
-    echo "Deploy " $host
-    ssh huangyam@$host 'rm -r ~/scripts && mkdir ~/scripts/'
-    scp ~/Program/CS5700/project5/measurer.py huangyam@$host:~/scripts/
-    scp ~/Program/CS5700/project5/run.sh huangyam@$host:~/scripts/
-    ssh huangyam@$host 'chmod +x ~/scripts/run.sh'
-    # scp ~/Program/CS5700/project5/httpserver* huangyam@$host:~/scripts/
+    echo $host
+    # echo close all servers
+    ssh huangyam@$host "killall python"
 done
