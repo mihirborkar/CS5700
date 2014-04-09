@@ -10,7 +10,6 @@ hostnames=(ec2-54-84-248-26.compute-1.amazonaws.com
 
 for host in "${hostnames[@]}"
 do
-    echo $host
-    # echo close all servers
+    echo 'Close ' $host
     ssh huangyam@$host "killall python"
 done

@@ -1,4 +1,5 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+import errno
 import getopt
 import os
 import sys
@@ -12,17 +13,10 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # TODO: Add map{file:count}
-        try:
-            with open(os.pardir + self.path) as f:
-                self.send_response(200)
-                self.send_header('Content-type', 'text/plain')
-                self.end_headers()
-                self.wfile.write(f.read())
-
-        except IOError:
+        if not os.path.isfile(os.pardir + self.path):
             # No such file, ask origin server
             self.fetch_origin(self.path)
-            # TODO Refactor here
+        else:
             with open(os.pardir + self.path) as f:
                 self.send_response(200)
                 self.send_header('Content-type', 'text/plain')
@@ -40,7 +34,13 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
             if not os.path.exists(d):
                 os.makedirs(d)
             f = open(filename, 'w')
-            f.write(res.read())
+            try:
+                # TODO: Refactor here
+                f.write(res.read())
+            except IOError as e:
+                if e.errno == errno.EDQUOT:
+                    # Disk has no space
+                    print 'DISK FULL'
             f.close()
 
 
