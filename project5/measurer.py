@@ -65,5 +65,5 @@ class MeasurementServer:
 
 
 if __name__ == '__main__':
-    server = MeasurementServer()
-    server.start()
+    measure_server = MeasurementServer()
+    measure_server.start()

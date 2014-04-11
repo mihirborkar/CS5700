@@ -7,15 +7,14 @@ import urllib2
 
 
 class CustomizedHTTPHandler(BaseHTTPRequestHandler):
-    def __init__(self, origin_server, *args):
-        self.origin = origin_server
-        self.index = {}
+    def __init__(self, origin, *args):
+        self.origin = origin
+        self.cache = []
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def do_GET(self):
-        # TODO: Add map{file:count}
-        if not os.path.isfile(os.pardir + self.path):
-            # No such file, ask origin server
+        if self.path not in self.cache:
+            # No such file, fetch this file from origin server
             self.fetch_origin(self.path)
         else:
             with open(os.pardir + self.path) as f:
@@ -23,14 +22,18 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
                 self.wfile.write(f.read())
+            # Update cache
+            self.cache.remove(self.path)
+            self.cache.append(self.path)
 
     def fetch_origin(self, path):
         """Fetch a file from origin server"""
         try:
             res = urllib2.urlopen('http://' + self.origin + ':8080' + path)
-        except urllib2.HTTPError:
-            # Even origin server does not have such file.
-            self.send_error(404, 'File not found: %s' % self.path)
+        except urllib2.HTTPError as he:
+            self.send_error(he.code, he.reason)
+        except urllib2.URLError as ue:
+            self.send_error(ue.reason)
         else:
             filename = os.pardir + path
             d = os.path.dirname(filename)
@@ -46,13 +49,18 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
                     print 'DISK FULL'
             f.close()
 
+    def download(self, path, reponse):
+        """Download the file from the origin server."""
+        pass
 
-def server(port, origin_server):
+
+def server(port, origin):
     def handler(*args):
-        CustomizedHTTPHandler(origin_server, *args)
+        CustomizedHTTPHandler(origin, *args)
 
     httpd = HTTPServer(('', port), handler)
     httpd.serve_forever()
+
 
 def parse(argvs):
     (port, origin) = (0, '')
@@ -64,9 +72,9 @@ def parse(argvs):
             origin = a
         else:
             sys.exit('Usage: %s -p <port> -o <origin>' % argvs[0])
-    return (port, origin)
+    return port, origin
 
 
 if __name__ == '__main__':
-    (port, origin) = parse(sys.argv)
-    server(port, origin)
+    port_number, origin_server = parse(sys.argv)
+    server(port_number, origin_server)

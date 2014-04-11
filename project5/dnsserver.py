@@ -1,10 +1,11 @@
-from testdelay import select_replica
 import random
 import getopt
 import SocketServer
 import socket
 import struct
 import sys
+
+from testdelay import select_replica
 
 
 """
@@ -81,18 +82,18 @@ class DNSPacket:
         self.query = DNSQuery()
         self.answer = DNSAnswer()
 
-    def build_query(self, name):
+    def build_query(self, domain_name):
         packet = struct.pack('>HHHHHH', self.id, self.flags,
                              self.qcount, self.acount,
                              self.nscount, self.arcount)
-        packet += self.query.create(name)
+        packet += self.query.create(domain_name)
         return packet
 
-    def build_answer(self, name, ip):
+    def build_answer(self, domain_name, ip):
         self.answer = DNSAnswer()
         self.acount = 1
         self.flags = 0x8180
-        packet = self.build_query(name)
+        packet = self.build_query(domain_name)
         packet += self.answer.create(ip)
         return packet
 
@@ -122,9 +123,9 @@ class DNSQuery:
         self.qtype = 0
         self.qclass = 0
 
-    def create(self, name):
-        self.qname = name
-        query = ''.join(chr(len(x)) + x for x in name.split('.'))
+    def create(self, domain_name):
+        self.qname = domain_name
+        query = ''.join(chr(len(x)) + x for x in domain_name.split('.'))
         query += '\x00'  # add end symbol
         return query + struct.pack('>HH', self.qtype, self.qclass)
 
@@ -188,7 +189,7 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
 
         if packet.query.qtype == 1:
             domain = packet.query.qname
-            if domain == 'cs5700cdn.example.com':#RECORD.__contains__(domain):
+            if domain == 'cs5700cdn.example.com':  # RECORD.__contains__(domain):
                 # ip = RECORD[domain]
                 ip = select_replica(self.client_address[0])
                 print '[DEBUG]Select replica server: %s' % ip
@@ -203,12 +204,11 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
 
 
 class SimpleDNSServer:
-    def __init__(self, port=53):
-        self.port = port
+    def __init__(self, dns_port=53):
+        self.port = dns_port
 
     def start(self):
-        HOST, PORT = '', self.port
-        server = SocketServer.UDPServer((HOST, PORT), DNSUDPHandler)
+        server = SocketServer.UDPServer(('', self.port), DNSUDPHandler)
         server.serve_forever()
 
 
@@ -222,10 +222,10 @@ def parse(argvs):
             name = a
         else:
             sys.exit('Usage: %s -p <port> -o <origin>' % argvs[0])
-    return (port, name)
+    return port, name
 
 
 if __name__ == '__main__':
-    (port, domain) = parse(sys.argv)
-    server = SimpleDNSServer(port)
-    server.start()
+    (port_number, cdn_name) = parse(sys.argv)
+    dns_server = SimpleDNSServer(port_number)
+    dns_server.start()
