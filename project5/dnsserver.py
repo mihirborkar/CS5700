@@ -188,7 +188,7 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
 
         if packet.query.qtype == 1:
             domain = packet.query.qname
-            if RECORD.__contains__(domain):
+            if domain == 'cs5700cdn.example.com':#RECORD.__contains__(domain):
                 # ip = RECORD[domain]
                 ip = select_replica(self.client_address[0])
                 print '[DEBUG]Select replica server: %s' % ip
@@ -213,8 +213,7 @@ class SimpleDNSServer:
 
 
 def parse(argvs):
-    port = 0
-    name = ''
+    (port, name) = (0, '')
     opts, args = getopt.getopt(argvs[1:], 'p:n:')
     for o, a in opts:
         if o == '-p':
@@ -223,10 +222,10 @@ def parse(argvs):
             name = a
         else:
             sys.exit('Usage: %s -p <port> -o <origin>' % argvs[0])
-    return port, name
+    return (port, name)
 
 
 if __name__ == '__main__':
-    port, domain = parse(sys.argv)
+    (port, domain) = parse(sys.argv)
     server = SimpleDNSServer(port)
     server.start()

@@ -29,7 +29,7 @@ def get_avg_time(ip_address):
     """
     extract average time from ping -c
     """
-    cmd = "ping -c 1 " + ip_address + " | tail -1| awk '{print $4}' | cut -d '/' -f 2"
+    cmd = "scamper -c 'ping -c 1 -P tcp-ack' -i -d 22" + ip_address + " |awk 'NR==2 {print $8}'|cut -d '=' -f 2"
     res = commands.getoutput(cmd)
     if not res:
         res = 'inf'

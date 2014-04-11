@@ -9,6 +9,7 @@ import urllib2
 class CustomizedHTTPHandler(BaseHTTPRequestHandler):
     def __init__(self, origin_server, *args):
         self.origin = origin_server
+        self.index = {}
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def do_GET(self):
@@ -24,10 +25,12 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f.read())
 
     def fetch_origin(self, path):
+        """Fetch a file from origin server"""
         try:
             res = urllib2.urlopen('http://' + self.origin + ':8080' + path)
         except urllib2.HTTPError:
-            self.send_error(404, 'File Not Found: %s' % self.path)
+            # Even origin server does not have such file.
+            self.send_error(404, 'File not found: %s' % self.path)
         else:
             filename = os.pardir + path
             d = os.path.dirname(filename)
@@ -52,8 +55,7 @@ def server(port, origin_server):
     httpd.serve_forever()
 
 def parse(argvs):
-    port = 0
-    origin = ''
+    (port, origin) = (0, '')
     opts, args = getopt.getopt(argvs[1:], 'p:o:')
     for o, a in opts:
         if o == '-p':
@@ -62,10 +64,9 @@ def parse(argvs):
             origin = a
         else:
             sys.exit('Usage: %s -p <port> -o <origin>' % argvs[0])
-
-    return port, origin
+    return (port, origin)
 
 
 if __name__ == '__main__':
-    port, origin = parse(sys.argv)
+    (port, origin) = parse(sys.argv)
     server(port, origin)

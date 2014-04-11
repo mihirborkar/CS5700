@@ -11,5 +11,7 @@ hostnames=(ec2-54-84-248-26.compute-1.amazonaws.com
 for host in "${hostnames[@]}"
 do
     echo $host
-    ssh huangyam@$host "scripts/run.sh"
+    # Run server in the background on target machine
+    # Refer to: http://goo.gl/Tp23ww
+    ssh -n -f huangyam@$host "sh -c 'cd ~/scripts/; nohup ./run.sh > /dev/null 2>&1 &'"
 done
