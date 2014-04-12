@@ -25,11 +25,17 @@ Look up the format for a DNS A record query, then implement code that parses it 
 2. HTTP Server
 We customize our HTTP server based on python built-in HTTPServer class.
 
-Techniques
-
 
 Challenges
 The most challenging part in this milestone is parse a DNS request and send a DNS answer with a correct IP address. We solve this problem by reading this document: http://www.ccs.neu.edu/home/amislove/teaching/cs4700/fall09/handouts/project1-primer.pdf and  understanding DNS format.
 
 Final Project April 21st, 2014
 ==============================
+High-Level Approach
+1. Mapping
+
+
+2. Cache Management
+LRU
+
+3. Techniques
