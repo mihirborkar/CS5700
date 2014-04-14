@@ -25,11 +25,12 @@ def get_connection_time(ip_address):
     return res
 
 
-def get_avg_time(ip_address):
+def get_latency(ip_address):
     """
     extract average time from ping -c
+    scamper -c 'ping -c 1 -P tcp-ack -d 49999' -i 54.84.248.26
     """
-    cmd = "scamper -c 'ping -c 1 -P tcp-ack' -i -d 22" + ip_address + " |awk 'NR==2 {print $8}'|cut -d '=' -f 2"
+    cmd = "scamper -c 'ping -c 1 -P tcp-ack -d 22' -i " + ip_address + " |awk 'NR==2 {print $8}'|cut -d '=' -f 2"
     res = commands.getoutput(cmd)
     if not res:
         res = 'inf'
@@ -40,15 +41,15 @@ class MeasureHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         target_ip = self.request.recv(1024).strip()
         print '[DEBUG]Client address: %s' % target_ip
-        # avg_time = get_avg_time(target_ip)
-        avg_time = get_connection_time(target_ip)
+        avg_time = get_latency(target_ip)
+        # avg_time = get_connection_time(target_ip)
         print '[DEBUG]Latency: %s' % avg_time
         self.request.sendall(avg_time)
 
         # def handle(self):
         #     target_ip = self.request[0].strip()
         #     sock = self.request[1]
-        #     # avg_time = get_avg_time(target_ip)
+        #     # avg_time = get_latency(target_ip)
         #     avg_time = get_connection_time(target_ip)
         #     print '[DEBUG]latency' + avg_time
         #     sock.sendto(avg_time, self.client_address)

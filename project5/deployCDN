@@ -39,8 +39,8 @@ for host in "${hostnames[@]}"
 do
     echo "Deploy " $host
     ssh huangyam@$host 'rm -r ~/scripts && mkdir ~/scripts/'
-    scp ~/Program/CS5700/project5/measurer.py huangyam@$host:~/scripts/
-    scp ~/Program/CS5700/project5/httpserver* huangyam@$host:~/scripts/
+    scp measurer.py huangyam@$host:~/scripts/
+    scp httpserver* huangyam@$host:~/scripts/
 done
 
 dnsserver=cs5700cdnproject.ccs.neu.edu

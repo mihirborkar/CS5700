@@ -69,8 +69,10 @@ def select_replica(target_ip):
     for t in threads:
         t.join()
 
+    print dic
+    if len(set(dic.values())) <= 1:
+        return dic.keys()[-1]
     sorted_dic = sorted(dic.items(), key=lambda e: e[1])
-    print sorted_dic
     return sorted_dic[0][0]
 
 

@@ -192,6 +192,7 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
             if domain == 'cs5700cdn.example.com':  # RECORD.__contains__(domain):
                 # ip = RECORD[domain]
                 ip = select_replica(self.client_address[0])
+                # ip = select_replica_geo(self.client_address[0])
                 print '[DEBUG]Select replica server: %s' % ip
                 data = packet.build_answer(domain, ip)
                 sock.sendto(data, self.client_address)
