@@ -17,32 +17,28 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
         if self.path not in self.cache:
             # No such file, fetch this file from origin server
             print '[DEBUG]Ask origin server for %s' % self.path
-            self.fetch_origin(self.path)
+            try:
+                request = 'http://' + self.origin + ':8080' + self.path
+                res = urllib2.urlopen(request)
+            except urllib2.HTTPError as he:
+                self.send_error(he.code, he.reason)
+                return
+            except urllib2.URLError as ue:
+                self.send_error(ue.reason)
+                return
+            else:
+                print '[DEBUG]Try to download %s' % self.path
+                self.download(self.path, res)
         # File is in server
-        with open(os.pardir + self.path) as f:
+        with open(os.pardir + self.path) as page:
             self.send_response(200)
             self.send_header('Content-type', 'text/plain')
             self.end_headers()
-            self.wfile.write(f.read())
+            self.wfile.write(page.read())
         # Update cache
         self.cache.remove(self.path)
         self.cache.append(self.path)
         print '[DEBUG]Cache:', self.cache
-
-    def fetch_origin(self, path):
-        """Fetch a file from origin server
-        Args:
-            path: the relative path of the file
-        """
-        try:
-            res = urllib2.urlopen('http://' + self.origin + ':8080' + path)
-        except urllib2.HTTPError as he:
-            self.send_error(he.code, he.reason)
-        except urllib2.URLError as ue:
-            self.send_error(ue.reason)
-        else:
-            print '[DEBUG]Try to download %s' % path
-            self.download(path, res)
 
     def download(self, path, response):
         """Download the file from the origin server.
@@ -70,8 +66,9 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
                     # Delete this file
                     os.remove(os.pardir + remove_file_path)
                     print '[DEBUG]Delete %s' % remove_file_path
+                else:
+                    raise e
         f.close()
-
 
 def server(port, origin):
     cache = []

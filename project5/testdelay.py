@@ -51,12 +51,14 @@ class TestThread(threading.Thread):
             sock.close()
 
         print '[DEBUG]IP: %s\tLatency:%s' % (ip, latency)
-        self.lock.acquire()
-        dic.update({ip: float(latency)})
-        self.lock.release()
+        with self.lock:
+            dic.update({ip: float(latency)})
 
 
 def select_replica(target_ip):
+    """
+    Select bset replica server using active mesaurement
+    """
     lock = threading.Lock()
     threads = []
 
@@ -77,6 +79,9 @@ def select_replica(target_ip):
 
 
 def select_replica_geo(target_ip):
+    """
+    Select bset replica server based on GeoLocation
+    """
     def get_location(_ip):
         res = urllib2.urlopen(URL + _ip)
         loc_info = res.read().split(';')

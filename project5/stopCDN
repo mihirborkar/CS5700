@@ -41,3 +41,7 @@ do
     ssh huangyam@$host "killall python"
     # ssh -i $keyfile $username@$host "killall python"
 done
+
+dnsserver=cs5700cdnproject.ccs.neu.edu
+echo "Close " $dnsserver
+ssh yummin@$dnsserver 'killall python'
