@@ -1,6 +1,6 @@
+from SocketServer import BaseRequestHandler, UDPServer
 import random
 import getopt
-import SocketServer
 import socket
 import struct
 import sys
@@ -174,11 +174,13 @@ class DNSAnswer:
         print 'Query: %X' % self.aname
         print 'Type: %d\tClass: %d' % (self.atype, self.aclass)
         print 'TTL: %d\tLength: %d' % (self.ttl, self.len)
-        print self.data
+        print 'IP: %s' % self.data
 
 
-class DNSUDPHandler(SocketServer.BaseRequestHandler):
+class DNSUDPHandler(BaseRequestHandler):
+
     def handle(self):
+        print '[DEBUG]CDN Name: %s' % self.server.name
         data = self.request[0].strip()
         sock = self.request[1]
         packet = DNSPacket()
@@ -189,8 +191,7 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
 
         if packet.query.qtype == 1:
             domain = packet.query.qname
-            if domain == 'cs5700cdn.example.com':  # RECORD.__contains__(domain):
-                # ip = RECORD[domain]
+            if domain == self.server.name:
                 ip = select_replica(self.client_address[0])
                 # ip = select_replica_geo(self.client_address[0])
                 print '[DEBUG]Select replica server: %s' % ip
@@ -203,15 +204,11 @@ class DNSUDPHandler(SocketServer.BaseRequestHandler):
         else:
             sock.sendto(data, self.client_address)
 
-
-class SimpleDNSServer:
-    def __init__(self, dns_port=53):
-        self.port = dns_port
-
-    def start(self):
-        server = SocketServer.UDPServer(('', self.port), DNSUDPHandler)
-        server.serve_forever()
-
+class SimpleDNSServer(UDPServer):
+    def __init__(self, cdn_name, server_address, handler_class=DNSUDPHandler):
+        self.name = cdn_name
+        UDPServer.__init__(self, server_address, handler_class)
+        return
 
 def parse(argvs):
     (port, name) = (0, '')
@@ -228,5 +225,5 @@ def parse(argvs):
 
 if __name__ == '__main__':
     (port_number, cdn_name) = parse(sys.argv)
-    dns_server = SimpleDNSServer(port_number)
-    dns_server.start()
+    dns_server = SimpleDNSServer(cdn_name, ('', port_number))
+    dns_server.serve_forever()

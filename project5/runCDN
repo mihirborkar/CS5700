@@ -44,5 +44,5 @@ do
     # Run server in the background on target machine
     # Refer to: http://goo.gl/Tp23ww
     ssh -n -f huangyam@$host "sh -c 'cd ~/scripts/; nohup python measurer.py > /dev/null 2>&1 &'"
-    # ssh -n -f huangyam@$host "sh -c 'cd ~/scripts/; nohup ./httpserver -p > /dev/null 2>&1 &'"
+    # ssh -n -f huangyam@$host "sh -c 'cd ~/scripts/; nohup ./httpserver -p $port -o $origin > /dev/null 2>&1 &'"
 done
