@@ -117,7 +117,7 @@ def is_private(ip):
 
 def select_replica(target_ip):
     if is_private(target_ip):
-        return '54.85.79.138'
+        return '54.84.248.26'
     result = sort_replica_act(target_ip)
     if len(set(result.values())) <= 1:
         result = sort_replica_geo(target_ip)
