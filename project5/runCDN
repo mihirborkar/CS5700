@@ -49,4 +49,6 @@ done
 
 dnsserver=cs5700cdnproject.ccs.neu.edu
 echo $dnsserver
-ssh -i $keyfile -n -f yummin@$dnsserver "sh -c 'cd ~/scripts/; nohup ./dnsserver -p $port -n $name > /dev/null 2>&1 &'"
+# ssh -i $keyfile -n -f yummin@$dnsserver "sh -c 'cd ~/scripts/; nohup ./dnsserver -p $port -n $name > /dev/null 2>&1 &'"
+ssh -i $keyfile -n -f $username@$dnsserver "sh -c 'cd ~/scripts/; nohup ./dnsserver -p $port -n $name > /dev/null 2>&1 &'"
+

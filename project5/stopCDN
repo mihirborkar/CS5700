@@ -43,4 +43,5 @@ done
 
 dnsserver=cs5700cdnproject.ccs.neu.edu
 echo "Close " $dnsserver
-ssh -i $keyfile yummin@$dnsserver 'killall python'
+# ssh -i $keyfile yummin@$dnsserver 'killall python'
+ssh -i $keyfile $username@$dnsserver 'killall python'

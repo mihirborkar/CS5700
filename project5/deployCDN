@@ -45,6 +45,9 @@ done
 
 dnsserver=cs5700cdnproject.ccs.neu.edu
 echo "Deploy " $dnsserver
-ssh -i $keyfile yummin@$dnsserver 'mkdir ~/scripts/'
-scp -i $keyfile dnsserver* yummin@$dnsserver:~/scripts/
-scp -i $keyfile testdelay.py yummin@$dnsserver:~/scripts/
+# ssh -i $keyfile yummin@$dnsserver 'mkdir ~/scripts/'
+# scp -i $keyfile dnsserver* yummin@$dnsserver:~/scripts/
+# scp -i $keyfile testdelay.py yummin@$dnsserver:~/scripts/
+ssh -i $keyfile $username@$dnsserver 'mkdir ~/scripts/'
+scp -i $keyfile dnsserver* $username@$dnsserver:~/scripts/
+scp -i $keyfile testdelay.py $username@$dnsserver:~/scripts/
