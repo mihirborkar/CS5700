@@ -178,7 +178,6 @@ class DNSAnswer:
 
 
 class DNSUDPHandler(BaseRequestHandler):
-
     def handle(self):
         print '[DEBUG]CDN Name: %s' % self.server.name
         data = self.request[0].strip()
@@ -204,11 +203,13 @@ class DNSUDPHandler(BaseRequestHandler):
         else:
             sock.sendto(data, self.client_address)
 
+
 class SimpleDNSServer(UDPServer):
     def __init__(self, cdn_name, server_address, handler_class=DNSUDPHandler):
         self.name = cdn_name
         UDPServer.__init__(self, server_address, handler_class)
         return
+
 
 def parse(argvs):
     (port, name) = (0, '')

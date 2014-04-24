@@ -70,6 +70,7 @@ class CustomizedHTTPHandler(BaseHTTPRequestHandler):
                     raise e
         f.close()
 
+
 def server(port, origin):
     cache = []
 
