@@ -1,10 +1,5 @@
 This is the course project of CS5700(Fundamental of Computer Network) in CCIS, Northeastern University.
 
-The Project is made by
-
-*  Yaming Huang
-*  Shuyi Zhang
-
 This project includes 5 sub-projects and 1 extra sub-project:
 
 1. [Socket](http://david.choffnes.com/classes/cs4700sp14/project1.php)

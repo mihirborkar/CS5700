@@ -1,7 +1,3 @@
-This project is made by
- * Yaming Huang (yummin@ccs.neu.edu)
- * Shuyi Zhang (zsyqq@ccs.neu.edu)
-
 Note: THIS PROJECT HAS ALREADY IMPLEMENTED LAYER-2 SOCKET, WHICH INCLUDES ARP PROTOCOL AND ETHERNET FRAME.
 ===================
 High-Level Approach

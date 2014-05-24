@@ -1,7 +1,5 @@
 README
 
-This project is made by Shuyi Zhang(zsyqq@ccs.neu.edu) and Yaming Huang(yummin@ccs.neu.edu).
-
 The code of this project includes:
 1. NS-2 TCL scripts
    * exp1.tcl

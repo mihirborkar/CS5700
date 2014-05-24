@@ -1,11 +1,9 @@
 README
 
-This project is made by Yaming Huang(huang.yam@husky.neu.edu) and Shuyi Zhang(zhang.shuy@husky.neu.edu)
-============================================================================
 Build
 
 You can build the java code by run build file
-./build
+$ make
 ============================================================================
 Run
 
