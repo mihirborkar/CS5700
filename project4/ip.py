@@ -1,7 +1,6 @@
 from random import randint
 import socket
 import struct
-import sys
 
 from ethernet import EthernetSocket
 from utility import ChecksumError, checksum
@@ -136,7 +135,7 @@ class IPSocket:
         self.src = src_ip
         self.dst = dst_ip
 
-        #self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+        # self.send_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
         #self.recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
         #self.recv_sock.setblocking(0)
 
@@ -147,14 +146,14 @@ class IPSocket:
         packet = IPPacket(self.src, self.dst, data)
         # print '[DEBUG]Send IP Packet:'
         # packet.debug_print()
-        #self.send_s.sendto(packet.build(), (self.des, 0))
+        # self.send_s.sendto(packet.build(), (self.des, 0))
         self.sock.send(packet.build())
 
     def recv(self):
         packet = IPPacket()
         while True:
             packet.reset()
-            #pkt = self.recv_sock.recv(4096)
+            # pkt = self.recv_sock.recv(4096)
             pkt = self.sock.recv()
             packet.rebuild(pkt)
 

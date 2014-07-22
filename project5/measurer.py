@@ -48,7 +48,7 @@ class MeasureHandler(SocketServer.BaseRequestHandler):
         self.request.sendall(avg_time)
 
         # def handle(self):
-        #     target_ip = self.request[0].strip()
+        # target_ip = self.request[0].strip()
         #     sock = self.request[1]
         #     # avg_time = get_latency(target_ip)
         #     avg_time = get_connection_time(target_ip)

@@ -12,7 +12,7 @@ for root, dirs, files in os.walk(dir):
     break
 
 for root, dirs, files in os.walk(dir):
-   for f in files:
+    for f in files:
         if f.endswith('clr'):
             command = './grepForStuff.sh ' + os.path.join(root, f)
             os.system(command)

@@ -12,12 +12,12 @@ class HTTPPacket():
             # e.g. url: http://cs5700.ccs.neu.edu/fakebook
             # hostname: cs5700.ccs.neu.edu
             hostname = my_url.split('/')[2]
-            #print '[DEBUG]Host name: %s' % hostname
+            # print '[DEBUG]Host name: %s' % hostname
             return hostname
 
         def get_relative_path(my_url, hostname):
             start_position = my_url.find(hostname) + len(hostname)
-            #print '[DEBUG] Path:' + url[start_position:]
+            # print '[DEBUG] Path:' + url[start_position:]
             return my_url[start_position:]
 
         self.hostname = get_hostname(_url)
@@ -48,7 +48,7 @@ class HTTPSocket:
                 name = 'index.html'
             else:
                 name = my_url.split('/')[-1]
-                #print '[DEBUG]: File name' + filename
+                # print '[DEBUG]: File name' + filename
             return name
 
         filename = get_filename(_url)
@@ -80,7 +80,7 @@ class HTTPSocket:
             request = packet.build_request()
             self.sock.send(request)
         except socket.error:
-            #Send failed
+            # Send failed
             sys.exit('Send failed')
 
     def recv(self):
